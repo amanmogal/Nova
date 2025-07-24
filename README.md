@@ -1,4 +1,4 @@
-# Autonomous Notion Task Management Agent
+# Autonomous Notion Agent
 
 An AI agent that autonomously manages and schedules tasks within a Notion database using RAG (Retrieval Augmented Generation) for intelligent decision-making.
 
