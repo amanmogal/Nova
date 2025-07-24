@@ -1,0 +1,54 @@
+# Python virtual environments
+env/
+venv/
+ENV/
+.env
+.venv/
+env.example
+
+# Python bytecode/cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Local development settings
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+agent.log
+
+# Database files
+*.db
+*.sqlite3
+/data/chroma/
+
+# Project-specific files to ignore
+NotebookLM Mind Map (11).png
+NotebookLM Mind Map (12).png
+plan.txt
+12-factor.txt
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db 
+plan.md
