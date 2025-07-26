@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import google.generativeai as genai
 from dotenv import load_dotenv
+from langsmith import Client as LangSmithClient
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolInvocation
 
@@ -37,6 +38,22 @@ logger = logging.getLogger("notion_agent")
 
 # Load environment variables
 load_dotenv()
+
+# ──────────────────────────────────────────────────────────────────────────────
+# LangSmith tracing (observation/monitoring)
+# If the user sets LANGCHAIN_TRACING_V2=true and provides LANGCHAIN_API_KEY
+# the agent will automatically send traces to LangSmith for every execution.
+# This block validates the credentials once at start-up and logs status.
+
+if os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true":
+    try:
+        _ls_client = LangSmithClient()
+        logger.info(
+            "LangSmith tracing ENABLED – project: %s", _ls_client.project_name
+        )
+    except Exception as exc:
+        logger.warning("LangSmith tracing could not be initialised: %s", exc)
+
 
 # Configure Google API
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))

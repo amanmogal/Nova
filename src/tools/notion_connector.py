@@ -82,6 +82,7 @@ class NotionConnector:
             task_data = {
                 "id": result["id"],
                 "url": result["url"],
+                "last_edited_time": result.get("last_edited_time"),
                 "title": self._property_value_to_python("title", props.get("Name", {}).get("title")),
                 "status": self._property_value_to_python("select", props.get("Status", {}).get("select")),
                 "priority": self._property_value_to_python("select", props.get("Priority", {}).get("select")),

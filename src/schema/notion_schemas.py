@@ -31,6 +31,7 @@ class NotionTaskSchema(BaseModel):
     estimated_duration: Optional[int] = Field(None, description="Estimated duration in minutes")
     tags: Optional[List[str]] = Field(None, description="Tags associated with the task")
     notes: Optional[str] = Field(None, description="Additional notes about the task")
+    last_edited_time: Optional[str] = Field(None, description="Last edited timestamp in ISO format")
     url: str = Field(..., description="URL to the task in Notion")
     
     class Config:

@@ -5,12 +5,14 @@ import os
 import json
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
+import pathlib
+import json as _json
+from dateutil import parser as date_parser
 
 from dotenv import load_dotenv
 import chromadb
 from chromadb.utils import embedding_functions
 import google.generativeai as genai
-
 from src.tools.notion_connector import NotionConnector
 from src.schema.notion_schemas import NotionTaskSchema, RoutineSchema
 
@@ -42,6 +44,10 @@ class RAGEngine:
         # Create or get collections
         self.tasks_collection = self._get_or_create_collection("notion_tasks")
         self.routines_collection = self._get_or_create_collection("notion_routines")
+
+        # Sync state path
+        self.sync_state_path = pathlib.Path(os.getenv("RAG_SYNC_STATE_PATH", "./data/rag_sync_state.json"))
+        self.sync_state = self._load_sync_state()
     
     def _get_or_create_collection(self, name: str):
         """Get or create a ChromaDB collection."""
@@ -49,32 +55,79 @@ class RAGEngine:
             return self.chroma_client.get_collection(name=name, embedding_function=self.embedding_function)
         except ValueError:
             return self.chroma_client.create_collection(name=name, embedding_function=self.embedding_function)
+
+    # ------------------------------------------------------------------
+    # Text chunking utility
+    # ------------------------------------------------------------------
+    def _chunk_text(self, text: str, max_words: int = 300, overlap: int = 50) -> List[str]:
+        """Split long text into overlapping word chunks.
+
+        Args:
+            text: The raw text to split.
+            max_words: Target maximum number of words per chunk.
+            overlap: Number of words to overlap between consecutive chunks.
+
+        Returns:
+            List of text chunks.
+        """
+        words = text.split()
+        if len(words) <= max_words:
+            return [text]
+
+        chunks: List[str] = []
+        start = 0
+        while start < len(words):
+            end = start + max_words
+            chunk = " ".join(words[start:end])
+            chunks.append(chunk)
+            # move start forward keeping an overlap
+            start = end - overlap
+            if start < 0:
+                start = 0
+        return chunks
     
     def sync_notion_data(self):
         """
         Sync Notion data to the vector database.
         This should be run periodically to keep the vector DB up to date.
         """
-        # Sync tasks
-        self._sync_tasks()
-        
-        # Sync routines
-        self._sync_routines()
-        
+        last_sync = self.sync_state.get("last_sync")
+
+        # Sync tasks and routines incrementally
+        self._sync_tasks(last_sync)
+        self._sync_routines(last_sync)
+
+        # Update sync state
+        self.sync_state["last_sync"] = datetime.utcnow().isoformat()
+        self._save_sync_state()
+
         return True
     
-    def _sync_tasks(self):
+    def _sync_tasks(self, last_sync: Optional[str] = None):
         """Sync tasks from Notion to ChromaDB."""
         # Get all tasks from Notion
         tasks = self.notion.get_tasks()
+
+        # If last_sync is provided, filter tasks that were edited after that time
+        if last_sync:
+            try:
+                last_sync_dt = date_parser.isoparse(last_sync)
+                tasks = [t for t in tasks if t.last_edited_time and date_parser.isoparse(t.last_edited_time) > last_sync_dt]
+            except Exception:
+                pass  # If parsing fails, fall back to full sync
+
+        if not tasks:
+            return  # Nothing to update
         
-        # Prepare data for ChromaDB
-        ids = [task.id for task in tasks]
-        documents = []
-        metadatas = []
+        # Prepare data for ChromaDB (with chunking)
+        ids: List[str] = []
+        documents: List[str] = []
+        metadatas: List[Dict[str, Any]] = []
+        parent_ids: List[str] = []
         
         for task in tasks:
-            # Create the document text for embedding
+            parent_ids.append(task.id)
+            # Create the document text for embedding (aggregate details)
             doc_text = f"Task: {task.title}\n"
             
             if task.status:
@@ -98,40 +151,52 @@ class RAGEngine:
             if task.notes:
                 doc_text += f"Notes: {task.notes}\n"
             
-            documents.append(doc_text)
-            
-            # Create metadata
-            metadata = {
-                "id": task.id,
-                "title": task.title,
-                "status": task.status,
-                "priority": task.priority if task.priority else "",
-                "due_date": task.due_date if task.due_date else "",
-                "url": task.url,
-                "type": "task"
-            }
-            metadatas.append(metadata)
+            # Split into chunks for embedding
+            chunks = self._chunk_text(doc_text)
+
+            for idx, chunk in enumerate(chunks):
+                chunk_id = f"{task.id}_chunk_{idx}"
+                ids.append(chunk_id)
+                documents.append(chunk)
+                metadata = {
+                    "id": chunk_id,
+                    "parent_id": task.id,
+                    "title": task.title,
+                    "status": task.status,
+                    "priority": task.priority if task.priority else "",
+                    "due_date": task.due_date if task.due_date else "",
+                    "url": task.url,
+                    "type": "task",
+                    "chunk_index": idx
+                }
+                metadatas.append(metadata)
         
-        # Clear existing data and add new data
+        # Remove existing embeddings for the affected parent tasks first
+        for pid in parent_ids:
+            self.tasks_collection.delete(where={"parent_id": pid})
+
         if ids:
-            self.tasks_collection.delete(where={"type": "task"})
             self.tasks_collection.add(
                 ids=ids,
                 documents=documents,
                 metadatas=metadatas
             )
     
-    def _sync_routines(self):
+    def _sync_routines(self, last_sync: Optional[str] = None):
         """Sync routines from Notion to ChromaDB."""
         # Get all routines from Notion
         routines = self.notion.get_routines()
+
+        # Currently Notion API for routines not tracking last_edited_time in schema; perform full refresh if last_sync is None
         
-        # Prepare data for ChromaDB
-        ids = [routine.id for routine in routines]
-        documents = []
-        metadatas = []
+        # Prepare data for ChromaDB (with chunking)
+        ids: List[str] = []
+        documents: List[str] = []
+        metadatas: List[Dict[str, Any]] = []
+        parent_ids: List[str] = []
         
         for routine in routines:
+            parent_ids.append(routine.id)
             # Create the document text for embedding
             doc_text = f"Routine: {routine.name}\n"
             
@@ -147,27 +212,53 @@ class RAGEngine:
                 if routine.recurrence_pattern:
                     doc_text += f"Recurrence Pattern: {routine.recurrence_pattern}\n"
             
-            documents.append(doc_text)
-            
-            # Create metadata
-            metadata = {
-                "id": routine.id,
-                "name": routine.name,
-                "recurring": str(routine.recurring),
-                "recurrence_pattern": routine.recurrence_pattern if routine.recurrence_pattern else "",
-                "url": routine.url,
-                "type": "routine"
-            }
-            metadatas.append(metadata)
+            chunks = self._chunk_text(doc_text)
+
+            for idx, chunk in enumerate(chunks):
+                chunk_id = f"{routine.id}_chunk_{idx}"
+                ids.append(chunk_id)
+                documents.append(chunk)
+                metadata = {
+                    "id": chunk_id,
+                    "parent_id": routine.id,
+                    "name": routine.name,
+                    "recurring": str(routine.recurring),
+                    "recurrence_pattern": routine.recurrence_pattern if routine.recurrence_pattern else "",
+                    "url": routine.url,
+                    "type": "routine",
+                    "chunk_index": idx
+                }
+                metadatas.append(metadata)
         
-        # Clear existing data and add new data
+        # Remove existing embeddings for affected routines
+        for pid in parent_ids:
+            self.routines_collection.delete(where={"parent_id": pid})
+
         if ids:
-            self.routines_collection.delete(where={"type": "routine"})
             self.routines_collection.add(
                 ids=ids,
                 documents=documents,
                 metadatas=metadatas
             )
+
+    # ------------------------- Sync State Helpers -------------------------
+
+    def _load_sync_state(self) -> Dict[str, Any]:
+        if self.sync_state_path.exists():
+            try:
+                with self.sync_state_path.open("r", encoding="utf-8") as f:
+                    return _json.load(f)
+            except Exception:
+                return {}
+        return {}
+
+    def _save_sync_state(self):
+        try:
+            self.sync_state_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.sync_state_path.open("w", encoding="utf-8") as f:
+                _json.dump(self.sync_state, f)
+        except Exception as e:
+            print(f"Error saving RAG sync state: {e}")
     
     def search_tasks(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """

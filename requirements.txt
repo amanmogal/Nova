@@ -1,22 +1,27 @@
 # Core Dependencies
-langchain==0.1.11
-langgraph==0.0.33
-google-generativeai==0.5.4
+langchain>=0.1.11
+langgraph==0.5.4
+google-genai>=1.25.0
 
 # Notion Integration
 notion-client==2.2.1
 
 # Vector Database & Embeddings
-chromadb==0.4.22
-langchain-chroma==0.0.2
+chromadb==1.0.9
+langchain-chroma==0.2.5
 
 # Database
-supabase-py==2.3.1
+supabase==2.17.0
 
 # Utilities
-python-dotenv==1.0.1
-pydantic==2.6.1
+python-dotenv>=1.0.1
+pydantic>=1.9
+python-dateutil>=2.9
 
 # Deployment
 google-cloud-scheduler==2.13.0
 google-cloud-run==0.10.9 
+
+langsmith>=0.1.8
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0

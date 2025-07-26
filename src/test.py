@@ -251,8 +251,17 @@ def main():
     
     results = {}
     
+    non_interactive = os.getenv("NON_INTERACTIVE", "false").lower() == "true"
+
+    def ask(prompt: str) -> str:
+        """Utility: return 'n' in non-interactive mode else ask user."""
+        if non_interactive:
+            print(f"{prompt} n  (auto-skip: NON_INTERACTIVE)")
+            return "n"
+        return input(prompt)
+
     for test_name, test_function in tests.items():
-        if input(f"Run {test_name} tests? (y/n): ").lower() == "y":
+        if ask(f"Run {test_name} tests? (y/n): ").lower() == "y":
             results[test_name] = test_function()
         else:
             results[test_name] = "Skipped"
