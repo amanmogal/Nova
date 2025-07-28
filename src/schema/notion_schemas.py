@@ -5,26 +5,25 @@ from pydantic import BaseModel, Field
 
 class TaskStatus(str, Enum):
     """Status options for tasks in Notion database."""
-    TO_DO = "To Do"
-    SCHEDULED = "Scheduled"
+    NOT_STARTED = "Not Started"
     IN_PROGRESS = "In Progress"
-    DONE = "Done"
-    CANCELED = "Canceled"
+    BLOCKED = "Blocked"
+    COMPLETE = "Complete"
 
 
 class TaskPriority(str, Enum):
     """Priority options for tasks in Notion database."""
-    LOW = "Low"
-    MEDIUM = "Medium"
+    CRITICAL = "Critical"
     HIGH = "High"
-    URGENT = "Urgent"
+    MEDIUM = "Medium"
+    LOW = "Low"
 
 
 class NotionTaskSchema(BaseModel):
     """Schema for tasks in Notion database."""
     id: str = Field(..., description="Notion page ID")
     title: str = Field(..., description="Task title")
-    status: TaskStatus = Field(TaskStatus.TO_DO, description="Current status of the task")
+    status: TaskStatus = Field(TaskStatus.NOT_STARTED, description="Current status of the task")
     priority: Optional[TaskPriority] = Field(None, description="Priority level of the task")
     due_date: Optional[str] = Field(None, description="Due date in ISO format")
     scheduled_time: Optional[str] = Field(None, description="Scheduled time in ISO format")

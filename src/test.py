@@ -20,7 +20,7 @@ from src.db.supabase_connector import SupabaseConnector
 load_dotenv()
 
 
-def test_notion_connector():
+def test_notion_connector(non_interactive: bool):
     """Test the Notion connector."""
     print("\n===== Testing Notion Connector =====")
     try:
@@ -37,9 +37,10 @@ def test_notion_connector():
             print(f"First task: {tasks[0].title} (Status: {tasks[0].status})")
             
             # Test update_task
-            if input("Do you want to test updating a task? (y/n): ").lower() == "y":
-                task_id = tasks[0].id
-                print(f"Updating task {task_id} ({tasks[0].title})...")
+            if not non_interactive:
+                if input("Do you want to test updating a task? (y/n): ").lower() == "y":
+                    task_id = tasks[0].id
+                    print(f"Updating task {task_id} ({tasks[0].title})...")
                 
                 # Define properties to update
                 properties = {
@@ -55,18 +56,17 @@ def test_notion_connector():
                 print(f"Update result: {result}")
         else:
             # Test create_task
-            if input("No tasks found. Do you want to create a test task? (y/n): ").lower() == "y":
-                print("Creating a test task...")
-                
-                task_data = {
-                    "title": f"Test Task {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                    "status": "To Do",
-                    "priority": "Medium",
-                    "notes": "This is a test task created by the test script"
-                }
-                
-                task_id = notion.create_task(task_data)
-                print(f"Created task with ID: {task_id}")
+            if not non_interactive:
+                if input("No tasks found. Do you want to create a test task? (y/n): ").lower() == "y":
+                    print("Creating a test task...")
+                    task_data = {
+                        "title": f"Test Task {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                        "status": "To Do",
+                        "priority": "Medium",
+                        "notes": "This is a test task created by the test script"
+                    }
+                    task_id = notion.create_task(task_data)
+                    print(f"Created task with ID: {task_id}")
         
         # Test get_routines
         print("\nTesting get_routines...")
@@ -138,18 +138,18 @@ def test_notification_tool():
         
         # Test send_notification
         print("Testing send_notification...")
-        recipient = input("Enter your email for test notification (or press Enter to skip): ")
+        # Using a dummy email for non-interactive testing
+        recipient = "test@example.com"
         
-        if recipient:
-            result = notification.send_notification(
-                recipient=recipient,
-                subject="Test Notification from Notion Agent",
-                message="This is a test notification from your autonomous Notion agent.",
-                priority="normal"
-            )
-            
-            print(f"Notification sent: {result}")
-            
+        result = notification.send_notification(
+            recipient=recipient,
+            subject="Test Notification from Notion Agent",
+            message="This is a test notification from your autonomous Notion agent.",
+            priority="normal"
+        )
+        
+        print(f"Notification sent: {result}")
+        
         # Test notify_task_scheduled
         print("\nTesting notify_task_scheduled...")
         
@@ -161,11 +161,8 @@ def test_notification_tool():
             "url": "https://notion.so/test-task"
         }
         
-        if recipient:
-            result = notification.notify_task_scheduled(task, recipient)
-            print(f"Task scheduled notification sent: {result}")
-        else:
-            print("Skipping notify_task_scheduled test (no recipient provided)")
+        result = notification.notify_task_scheduled(task, recipient)
+        print(f"Task scheduled notification sent: {result}")
             
         print("Notification tool tests completed successfully")
         return True
@@ -240,38 +237,31 @@ def test_supabase_connector():
 def main():
     """Main test function."""
     print("===== Notion Task Management Agent Tests =====\n")
-    
-    # Run tests
-    tests = {
-        "Notion Connector": test_notion_connector,
-        "RAG Engine": test_rag_engine,
-        "Notification Tool": test_notification_tool,
-        "Supabase Connector": test_supabase_connector
-    }
-    
-    results = {}
-    
+
+    # Mapping of test names to functions
     non_interactive = os.getenv("NON_INTERACTIVE", "false").lower() == "true"
 
-    def ask(prompt: str) -> str:
-        """Utility: return 'n' in non-interactive mode else ask user."""
-        if non_interactive:
-            print(f"{prompt} n  (auto-skip: NON_INTERACTIVE)")
-            return "n"
-        return input(prompt)
+    tests = {
+        "Notion Connector": lambda: test_notion_connector(non_interactive),
+        "RAG Engine": test_rag_engine,
+        "Notification Tool": test_notification_tool,
+        "Supabase Connector": test_supabase_connector,
+    }
 
+    results: dict[str, bool | str] = {}
+
+    # Execute selected tests
     for test_name, test_function in tests.items():
-        if ask(f"Run {test_name} tests? (y/n): ").lower() == "y":
-            results[test_name] = test_function()
-        else:
-            results[test_name] = "Skipped"
-    
-    # Print summary
+        results[test_name] = test_function()
+
+    # Print summary table
     print("\n===== Test Summary =====")
     for test_name, result in results.items():
-        status = "✓ Passed" if result is True else "✗ Failed" if result is False else "⚪ Skipped"
+        status = "PASS" if result is True else "FAIL" if result is False else "SKIPPED"
         print(f"{test_name}: {status}")
-        
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     main() 

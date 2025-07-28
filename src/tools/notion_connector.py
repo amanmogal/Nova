@@ -45,6 +45,8 @@ class NotionConnector:
             return property_value[0]["plain_text"] if property_value else ""
         elif property_type == "select":
             return property_value["name"] if property_value else None
+        elif property_type == "status":
+            return property_value["name"] if property_value else None
         elif property_type == "multi_select":
             return [item["name"] for item in property_value] if property_value else []
         elif property_type == "date":
@@ -83,15 +85,17 @@ class NotionConnector:
                 "id": result["id"],
                 "url": result["url"],
                 "last_edited_time": result.get("last_edited_time"),
-                "title": self._property_value_to_python("title", props.get("Name", {}).get("title")),
-                "status": self._property_value_to_python("select", props.get("Status", {}).get("select")),
+                "title": self._property_value_to_python("title", props.get("Task", {}).get("title")) or "Untitled Task",
+                "status": self._property_value_to_python("status", props.get("Status", {}).get("status")) or "Not Started",
                 "priority": self._property_value_to_python("select", props.get("Priority", {}).get("select")),
                 "due_date": self._property_value_to_python("date", props.get("Due Date", {}).get("date")),
-                "scheduled_time": self._property_value_to_python("date", props.get("Scheduled Time", {}).get("date")),
-                "estimated_duration": self._property_value_to_python("number", props.get("Estimated Duration (minutes)", {}).get("number")),
-                "tags": self._property_value_to_python("multi_select", props.get("Tags", {}).get("multi_select")),
+                "scheduled_time": None,  # Not in your schema
+                "estimated_duration": None,  # Not in your schema
+                "tags": [],  # Not in your schema
                 "notes": self._property_value_to_python("rich_text", props.get("Notes", {}).get("rich_text"))
             }
+            print(f"Debug: Raw Notion properties for task {result['id']}: {props}")
+            print(f"Debug: Processed task_data for task {result['id']}: {task_data}")
             
             tasks.append(NotionTaskSchema(**task_data))
             
@@ -198,6 +202,11 @@ class NotionConnector:
             recurring = self._property_value_to_python("checkbox", props.get("Recurring", {}).get("checkbox"))
             recurrence_pattern = self._property_value_to_python("select", props.get("Recurrence Pattern", {}).get("select"))
             
+            # Skip routines with missing required fields
+            if not name:
+                print(f"Warning: Skipping routine {result['id']} - missing name")
+                continue
+                
             routine_data = {
                 "id": result["id"],
                 "url": result["url"],
@@ -207,6 +216,10 @@ class NotionConnector:
                 "recurrence_pattern": recurrence_pattern
             }
             
-            routines.append(RoutineSchema(**routine_data))
+            try:
+                routines.append(RoutineSchema(**routine_data))
+            except Exception as e:
+                print(f"Warning: Skipping routine {result['id']} - validation error: {e}")
+                continue
             
         return routines 

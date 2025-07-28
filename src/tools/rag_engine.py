@@ -11,7 +11,8 @@ from dateutil import parser as date_parser
 
 from dotenv import load_dotenv
 import chromadb
-from chromadb.utils import embedding_functions
+from chromadb import PersistentClient
+from chromadb.config import Settings
 import google.generativeai as genai
 from src.tools.notion_connector import NotionConnector
 from src.schema.notion_schemas import NotionTaskSchema, RoutineSchema
@@ -33,12 +34,17 @@ class RAGEngine:
     def __init__(self):
         """Initialize the RAG engine."""
         self.notion = NotionConnector()
-        self.chroma_client = chromadb.PersistentClient(path=os.getenv("CHROMA_DB_PATH", "./data/chroma"))
-        
-        # Use Google's embedding model
-        self.embedding_function = embedding_functions.GoogleGenerativeAIEmbeddingFunction(
-            api_key=os.getenv("GOOGLE_API_KEY"),
-            model_name="models/embedding-001"
+
+        class GoogleEmbeddingFunction(chromadb.EmbeddingFunction):
+            def __call__(self, input: List[str]) -> List[List[float]]:
+                model = genai.GenerativeModel("models/embedding-001")
+                return [genai.embed_content(model="models/embedding-001", content=text)["embedding"] for text in input]
+
+        self.embedding_function = GoogleEmbeddingFunction()
+        chroma_path = os.getenv("CHROMA_DB_PATH", "./data/chroma")
+        self.chroma_client = PersistentClient(
+            path=chroma_path,
+            settings=Settings(persist_directory=chroma_path, is_persistent=True),
         )
         
         # Create or get collections
@@ -52,8 +58,10 @@ class RAGEngine:
     def _get_or_create_collection(self, name: str):
         """Get or create a ChromaDB collection."""
         try:
+            print(f"Debug: Attempting to get collection: {name}")
             return self.chroma_client.get_collection(name=name, embedding_function=self.embedding_function)
-        except ValueError:
+        except Exception as e:
+            print(f"Debug: Failed to get collection {name}: {e}. Attempting to create.")
             return self.chroma_client.create_collection(name=name, embedding_function=self.embedding_function)
 
     # ------------------------------------------------------------------
@@ -100,14 +108,14 @@ class RAGEngine:
         # Update sync state
         self.sync_state["last_sync"] = datetime.utcnow().isoformat()
         self._save_sync_state()
-
+        
         return True
     
     def _sync_tasks(self, last_sync: Optional[str] = None):
         """Sync tasks from Notion to ChromaDB."""
         # Get all tasks from Notion
         tasks = self.notion.get_tasks()
-
+        
         # If last_sync is provided, filter tasks that were edited after that time
         if last_sync:
             try:
@@ -153,7 +161,7 @@ class RAGEngine:
             
             # Split into chunks for embedding
             chunks = self._chunk_text(doc_text)
-
+            
             for idx, chunk in enumerate(chunks):
                 chunk_id = f"{task.id}_chunk_{idx}"
                 ids.append(chunk_id)
@@ -186,7 +194,7 @@ class RAGEngine:
         """Sync routines from Notion to ChromaDB."""
         # Get all routines from Notion
         routines = self.notion.get_routines()
-
+        
         # Currently Notion API for routines not tracking last_edited_time in schema; perform full refresh if last_sync is None
         
         # Prepare data for ChromaDB (with chunking)
@@ -213,7 +221,7 @@ class RAGEngine:
                     doc_text += f"Recurrence Pattern: {routine.recurrence_pattern}\n"
             
             chunks = self._chunk_text(doc_text)
-
+            
             for idx, chunk in enumerate(chunks):
                 chunk_id = f"{routine.id}_chunk_{idx}"
                 ids.append(chunk_id)
@@ -327,7 +335,6 @@ class RAGEngine:
     def build_context(self, query: str) -> Dict[str, Any]:
         """
         Build a context dictionary for the LLM with relevant information.
-        Following Factor 3: Own Your Context Window.
         
         Args:
             query: The agent's current goal or query

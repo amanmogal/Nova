@@ -133,6 +133,7 @@ class SupabaseConnector:
                 "updated_at": timestamp
             }
             
+            print(f"Debug: Saving preference payload: {preference}")
             # Check if preference already exists
             response = self.client.table("learned_preferences") \
                 .select("id") \
