@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from src.config import get_settings
-from src.agent import run_agent  # existing helper that drives the LangGraph workflow
 from src.tools.notion_connector import NotionConnector
 from src.db.supabase_connector import SupabaseConnector
 from src.tools.rag_engine import RAGEngine
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from contextlib import asynccontextmanager
 import os
 import logging
 import time
@@ -21,13 +21,33 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/agent.log'),
+        logging.FileHandler('logs/agent.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Nova Notion-Agent API", version="0.1.0")
+# Define lifespan context manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for FastAPI startup and shutdown."""
+    # Startup
+    try:
+        scheduler.start()
+        logger.info("Scheduler started: syncing every %d minute(s)", SYNC_INTERVAL_MIN)
+        logger.info("Sync monitoring initialized")
+    except Exception as e:
+        logger.error("Failed to start scheduler: %s", e)
+        raise
+    yield
+    # Shutdown
+    try:
+        scheduler.shutdown()
+        logger.info("Scheduler shutdown")
+    except Exception as e:
+        logger.error("Error during shutdown: %s", e)
+
+app = FastAPI(title="Nova Notion-Agent API", version="0.1.0", lifespan=lifespan)
 settings = get_settings()
 
 # ---------------------------------------------------------------------------
@@ -58,7 +78,7 @@ class SyncMonitor:
     def record_sync_start(self):
         """Record the start of a sync operation."""
         self.metrics.last_sync_time = datetime.utcnow()
-        logger.info("🔄 Starting RAG sync operation")
+        logger.info("Starting RAG sync operation")
     
     def record_sync_success(self, duration: float, tasks_processed: int, chunks_created: int):
         """Record a successful sync operation."""
@@ -81,7 +101,7 @@ class SyncMonitor:
         }
         self._add_to_history(sync_record)
         
-        logger.info(f"✅ RAG sync completed successfully in {duration:.2f}s - {tasks_processed} tasks, {chunks_created} chunks")
+        logger.info(f"RAG sync completed successfully in {duration:.2f}s - {tasks_processed} tasks, {chunks_created} chunks")
     
     def record_sync_failure(self, error: Exception, duration: float = 0):
         """Record a failed sync operation."""
@@ -102,7 +122,7 @@ class SyncMonitor:
         }
         self._add_to_history(sync_record)
         
-        logger.error(f"❌ RAG sync failed after {duration:.2f}s: {error}")
+        logger.error(f"RAG sync failed after {duration:.2f}s: {error}")
         logger.error(f"Consecutive failures: {self.metrics.consecutive_failures}")
     
     def _add_to_history(self, record: Dict[str, Any]):
@@ -139,18 +159,18 @@ sync_monitor = SyncMonitor()
 rag_engine = RAGEngine()
 
 # Read interval (minutes) from env var, default to 60
-SYNC_INTERVAL_MIN = int(os.getenv("RAG_SYNC_INTERVAL_MIN", "60"))
+SYNC_INTERVAL_MIN = settings.rag_sync_interval_min
 
 scheduler = AsyncIOScheduler()
 
-def _scheduled_rag_sync() -> None:
+async def _scheduled_rag_sync() -> None:
     """Background job: sync Notion data to the vector DB with comprehensive error handling."""
     start_time = time.time()
     sync_monitor.record_sync_start()
     
     try:
         # Perform the sync operation
-        sync_stats = rag_engine.sync_notion_data()
+        sync_stats = await rag_engine.sync_notion_data()
         
         # Calculate duration
         duration = time.time() - start_time
@@ -173,31 +193,9 @@ def _scheduled_rag_sync() -> None:
         # In production, you might want to send alerts here
 
 @scheduler.scheduled_job("interval", minutes=SYNC_INTERVAL_MIN)
-def scheduled_rag_sync_wrapper():
+async def scheduled_rag_sync_wrapper():
     """Wrapper for the scheduled sync job."""
-    _scheduled_rag_sync()
-
-# FastAPI lifespan events ----------------------------------------------------
-
-@app.on_event("startup")
-async def _on_startup() -> None:
-    """Start the scheduler and log startup information."""
-    try:
-        scheduler.start()
-        logger.info(f"🚀 Scheduler started: syncing every {SYNC_INTERVAL_MIN} minute(s)")
-        logger.info(f"📊 Sync monitoring initialized")
-    except Exception as e:
-        logger.error(f"Failed to start scheduler: {e}")
-        raise
-
-@app.on_event("shutdown")
-async def _on_shutdown() -> None:
-    """Shutdown the scheduler gracefully."""
-    try:
-        scheduler.shutdown()
-        logger.info("🛑 Scheduler shutdown")
-    except Exception as e:
-        logger.error(f"Error during shutdown: {e}")
+    await _scheduled_rag_sync()
 
 # ---------------------------------------------------------------------------
 # API Models
@@ -252,8 +250,8 @@ async def get_sync_history(limit: int = 10) -> Dict[str, Any]:
 async def trigger_manual_sync() -> Dict[str, Any]:
     """Manually trigger a sync operation."""
     try:
-        logger.info("🔄 Manual sync triggered via API")
-        _scheduled_rag_sync()
+        logger.info("Manual sync triggered via API")
+        await _scheduled_rag_sync()
         
         # Get the latest health status
         health_data = sync_monitor.get_health_status()
@@ -301,29 +299,17 @@ async def get_sync_metrics() -> Dict[str, Any]:
         }
     }
 
-@app.post("/run/{goal}")
-async def run_goal(goal: str) -> dict[str, str]:
-    """Kick off an agent run for a given goal (e.g., daily_planning)."""
-    try:
-        logger.info(f"🎯 Agent run triggered for goal: {goal}")
-        result = run_agent(goal)
-        logger.info(f"✅ Agent run completed for goal: {goal}")
-        return {"status": "completed", "result": str(result)}
-    except Exception as exc:
-        logger.error(f"❌ Agent run failed for goal {goal}: {exc}")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
 @app.post("/tasks")
 async def create_task(task: TaskIn) -> dict[str, str]:
     """Create a new Notion task through the agent's connector."""
     try:
-        logger.info(f"📝 Creating new task: {task.title}")
+        logger.info(f"Creating new task: {task.title}")
         notion = NotionConnector()
         task_id = notion.create_task(task.dict())
-        logger.info(f"✅ Task created successfully: {task_id}")
+        logger.info(f"Task created successfully: {task_id}")
         return {"task_id": task_id}
     except Exception as e:
-        logger.error(f"❌ Failed to create task: {e}")
+        logger.error(f"Failed to create task: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create task: {str(e)}")
 
 @app.get("/state/latest")
@@ -338,13 +324,12 @@ async def latest_state() -> dict:
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to retrieve latest state: {e}")
+        logger.error(f"Failed to retrieve latest state: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve state: {str(e)}")
 
 # ---------------------------------------------------------------------------
 # Dashboard endpoints for monitoring interface
-# ---------------------------------------------------------------------------
-
+# ----------------------------------------------------------------
 @app.get("/dashboard/overview")
 async def dashboard_overview() -> Dict[str, Any]:
     """Get overview data for the monitoring dashboard."""

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Union
 
 from dotenv import load_dotenv
-from notion_client import Client
+from notion_client import AsyncClient
 from pydantic import BaseModel, Field
 
 from src.schema.notion_schemas import NotionTaskSchema, TaskStatus, RoutineSchema
@@ -27,7 +27,7 @@ class NotionConnector:
         if not self.api_key:
             raise ValueError("NOTION_API_KEY environment variable not set")
         
-        self.client = Client(auth=self.api_key)
+        self.client = AsyncClient(auth=self.api_key)
         self.tasks_db_id = os.getenv("NOTION_TASKS_DATABASE_ID")
         self.routines_db_id = os.getenv("NOTION_ROUTINES_DATABASE_ID")
         
@@ -60,7 +60,7 @@ class NotionConnector:
         else:
             return property_value
     
-    def get_tasks(self, filter_criteria: Optional[Dict[str, Any]] = None) -> List[NotionTaskSchema]:
+    async def get_tasks(self, filter_criteria: Optional[Dict[str, Any]] = None) -> List[NotionTaskSchema]:
         """
         Fetch tasks from the Notion database with optional filtering.
         
@@ -119,7 +119,7 @@ class NotionConnector:
             print(f"Error updating task {task_id}: {str(e)}")
             return False
     
-    def create_task(self, task_data: Dict[str, Any]) -> Optional[str]:
+    async def create_task(self, task_data: Dict[str, Any]) -> Optional[str]:
         """
         Create a new task in the Notion database.
         
@@ -164,7 +164,7 @@ class NotionConnector:
             properties["Notes"] = {"rich_text": [{"text": {"content": task_data["notes"]}}]}
         
         try:
-            response = self.client.pages.create(
+            response = await self.client.pages.create(
                 parent={"database_id": self.tasks_db_id},
                 properties=properties
             )

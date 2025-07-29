@@ -39,8 +39,8 @@ def test_notion_connector(non_interactive: bool):
             # Test update_task
             if not non_interactive:
                 if input("Do you want to test updating a task? (y/n): ").lower() == "y":
-                    task_id = tasks[0].id
-                    print(f"Updating task {task_id} ({tasks[0].title})...")
+                task_id = tasks[0].id
+                print(f"Updating task {task_id} ({tasks[0].title})...")
                 
                 # Define properties to update
                 properties = {
@@ -58,15 +58,17 @@ def test_notion_connector(non_interactive: bool):
             # Test create_task
             if not non_interactive:
                 if input("No tasks found. Do you want to create a test task? (y/n): ").lower() == "y":
-                    print("Creating a test task...")
-                    task_data = {
-                        "title": f"Test Task {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                        "status": "To Do",
-                        "priority": "Medium",
-                        "notes": "This is a test task created by the test script"
-                    }
-                    task_id = notion.create_task(task_data)
-                    print(f"Created task with ID: {task_id}")
+                print("Creating a test task...")
+                
+                task_data = {
+                    "title": f"Test Task {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    "status": "To Do",
+                    "priority": "Medium",
+                    "notes": "This is a test task created by the test script"
+                }
+                
+                task_id = notion.create_task(task_data)
+                print(f"Created task with ID: {task_id}")
         
         # Test get_routines
         print("\nTesting get_routines...")

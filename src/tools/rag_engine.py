@@ -94,24 +94,35 @@ class RAGEngine:
                 start = 0
         return chunks
     
-    def sync_notion_data(self):
+    async def sync_notion_data(self):
         """
         Sync Notion data to the vector database.
         This should be run periodically to keep the vector DB up to date.
+        
+        Returns:
+            Dict containing sync statistics
         """
         last_sync = self.sync_state.get("last_sync")
 
         # Sync tasks and routines incrementally
-        self._sync_tasks(last_sync)
-        self._sync_routines(last_sync)
+        task_stats = await self._sync_tasks(last_sync)
+        routine_stats = await self._sync_routines(last_sync)
 
         # Update sync state
         self.sync_state["last_sync"] = datetime.utcnow().isoformat()
         self._save_sync_state()
         
-        return True
+        # Return comprehensive sync statistics
+        return {
+            "tasks_processed": task_stats.get("tasks_processed", 0),
+            "task_chunks_created": task_stats.get("chunks_created", 0),
+            "routines_processed": routine_stats.get("routines_processed", 0),
+            "routine_chunks_created": routine_stats.get("chunks_created", 0),
+            "total_chunks_created": task_stats.get("chunks_created", 0) + routine_stats.get("chunks_created", 0),
+            "sync_timestamp": self.sync_state["last_sync"]
+        }
     
-    def _sync_tasks(self, last_sync: Optional[str] = None):
+    async def _sync_tasks(self, last_sync: Optional[str] = None):
         """Sync tasks from Notion to ChromaDB."""
         # Get all tasks from Notion
         tasks = self.notion.get_tasks()
@@ -125,7 +136,7 @@ class RAGEngine:
                 pass  # If parsing fails, fall back to full sync
 
         if not tasks:
-            return  # Nothing to update
+            return {"tasks_processed": 0, "chunks_created": 0}  # Nothing to update
         
         # Prepare data for ChromaDB (with chunking)
         ids: List[str] = []
@@ -189,8 +200,10 @@ class RAGEngine:
                 documents=documents,
                 metadatas=metadatas
             )
+        
+        return {"tasks_processed": len(tasks), "chunks_created": len(ids)}
     
-    def _sync_routines(self, last_sync: Optional[str] = None):
+    async def _sync_routines(self, last_sync: Optional[str] = None):
         """Sync routines from Notion to ChromaDB."""
         # Get all routines from Notion
         routines = self.notion.get_routines()
@@ -248,6 +261,8 @@ class RAGEngine:
                 documents=documents,
                 metadatas=metadatas
             )
+        
+        return {"routines_processed": len(routines), "chunks_created": len(ids)}
 
     # ------------------------- Sync State Helpers -------------------------
 

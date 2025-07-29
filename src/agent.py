@@ -17,8 +17,6 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from langsmith import Client as LangSmithClient
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolInvocation
-
 from src.tools.notion_connector import NotionConnector
 from src.tools.rag_engine import RAGEngine
 from src.tools.notification_tool import NotificationTool
@@ -78,19 +76,16 @@ notification_tool = NotificationTool()
 db = SupabaseConnector()
 
 
-# Tool definitions
-def search_tasks_tool(query: str, limit: int = 5) -> Dict[str, Any]:
+# Tool definitions for LangGraph
+def search_tasks_tool(state: AgentState) -> AgentState:
     """
     Search for tasks in Notion.
-    
-    Args:
-        query: The search query
-        limit: Maximum number of results to return
-        
-    Returns:
-        Dictionary with search results
     """
     try:
+        # Get query from state
+        query = state.get("current_query", "")
+        limit = state.get("search_limit", 5)
+        
         tasks = rag_engine.search_tasks(query, n_results=limit)
         
         # Log the action
@@ -99,7 +94,9 @@ def search_tasks_tool(query: str, limit: int = 5) -> Dict[str, Any]:
             details={"query": query, "limit": limit, "results_count": len(tasks)}
         )
         
-        return {"success": True, "tasks": tasks}
+        # Update state with results
+        state["search_results"] = {"success": True, "tasks": tasks}
+        return state
     except Exception as e:
         error = f"Error searching tasks: {str(e)}"
         logger.error(error)
@@ -111,21 +108,19 @@ def search_tasks_tool(query: str, limit: int = 5) -> Dict[str, Any]:
             status="error"
         )
         
-        return {"success": False, "error": error}
+        state["search_results"] = {"success": False, "error": error}
+        return state
 
 
-def update_task_tool(task_id: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+def update_task_tool(state: AgentState) -> AgentState:
     """
     Update a task in Notion.
-    
-    Args:
-        task_id: The Notion page ID of the task
-        properties: Dictionary of properties to update
-        
-    Returns:
-        Dictionary with update result
     """
     try:
+        # Get task data from state
+        task_id = state.get("current_task_id", "")
+        properties = state.get("current_task_properties", {})
+        
         result = notion.update_task(task_id, properties)
         
         # Log the action
@@ -134,7 +129,9 @@ def update_task_tool(task_id: str, properties: Dict[str, Any]) -> Dict[str, Any]
             details={"task_id": task_id, "properties": properties}
         )
         
-        return {"success": result, "task_id": task_id}
+        # Update state with results
+        state["update_result"] = {"success": result, "task_id": task_id}
+        return state
     except Exception as e:
         error = f"Error updating task {task_id}: {str(e)}"
         logger.error(error)
@@ -146,20 +143,18 @@ def update_task_tool(task_id: str, properties: Dict[str, Any]) -> Dict[str, Any]
             status="error"
         )
         
-        return {"success": False, "error": error, "task_id": task_id}
+        state["update_result"] = {"success": False, "error": error, "task_id": task_id}
+        return state
 
 
-def create_task_tool(task_data: Dict[str, Any]) -> Dict[str, Any]:
+def create_task_tool(state: AgentState) -> AgentState:
     """
     Create a new task in Notion.
-    
-    Args:
-        task_data: Dictionary with task properties
-        
-    Returns:
-        Dictionary with creation result
     """
     try:
+        # Get task data from state
+        task_data = state.get("new_task_data", {})
+        
         task_id = notion.create_task(task_data)
         
         if task_id:
@@ -169,9 +164,12 @@ def create_task_tool(task_data: Dict[str, Any]) -> Dict[str, Any]:
                 details={"task_data": task_data, "task_id": task_id}
             )
             
-            return {"success": True, "task_id": task_id}
+            # Update state with results
+            state["create_result"] = {"success": True, "task_id": task_id}
         else:
-            return {"success": False, "error": "Failed to create task"}
+            state["create_result"] = {"success": False, "error": "Failed to create task"}
+        
+        return state
     except Exception as e:
         error = f"Error creating task: {str(e)}"
         logger.error(error)
@@ -183,24 +181,21 @@ def create_task_tool(task_data: Dict[str, Any]) -> Dict[str, Any]:
             status="error"
         )
         
-        return {"success": False, "error": error}
+        state["create_result"] = {"success": False, "error": error}
+        return state
 
 
-def send_notification_tool(recipient: str, subject: str, message: str, 
-                          priority: str = "normal") -> Dict[str, Any]:
+def send_notification_tool(state: AgentState) -> AgentState:
     """
     Send a notification to the user.
-    
-    Args:
-        recipient: Email address of the recipient
-        subject: Subject line of the notification
-        message: Body of the notification
-        priority: Priority level (low, normal, high)
-        
-    Returns:
-        Dictionary with notification result
     """
     try:
+        # Get notification data from state
+        recipient = state.get("notification_recipient", "")
+        subject = state.get("notification_subject", "")
+        message = state.get("notification_message", "")
+        priority = state.get("notification_priority", "normal")
+        
         result = notification_tool.send_notification(
             recipient=recipient,
             subject=subject,
@@ -218,7 +213,9 @@ def send_notification_tool(recipient: str, subject: str, message: str,
             }
         )
         
-        return {"success": result}
+        # Update state with results
+        state["notification_result"] = {"success": result}
+        return state
     except Exception as e:
         error = f"Error sending notification: {str(e)}"
         logger.error(error)
@@ -235,15 +232,13 @@ def send_notification_tool(recipient: str, subject: str, message: str,
             status="error"
         )
         
-        return {"success": False, "error": error}
+        state["notification_result"] = {"success": False, "error": error}
+        return state
 
 
-def get_routines_tool() -> Dict[str, Any]:
+def get_routines_tool(state: AgentState) -> AgentState:
     """
     Get the user's routines from Notion.
-    
-    Returns:
-        Dictionary with routines
     """
     try:
         routines = notion.get_routines()
@@ -266,7 +261,9 @@ def get_routines_tool() -> Dict[str, Any]:
             details={"count": len(routines_data)}
         )
         
-        return {"success": True, "routines": routines_data}
+        # Update state with results
+        state["routines_result"] = {"success": True, "routines": routines_data}
+        return state
     except Exception as e:
         error = f"Error getting routines: {str(e)}"
         logger.error(error)
@@ -278,10 +275,11 @@ def get_routines_tool() -> Dict[str, Any]:
             status="error"
         )
         
-        return {"success": False, "error": error}
+        state["routines_result"] = {"success": False, "error": error}
+        return state
 
 
-# Available tools mapping
+# Available tools mapping for LangGraph
 TOOLS = {
     "search_tasks": search_tasks_tool,
     "update_task": update_task_tool,
@@ -316,12 +314,6 @@ def perception(state: AgentState) -> AgentState:
 def reasoning(state: AgentState) -> AgentState:
     """
     Reasoning node: Generate the next action based on context.
-    
-    Args:
-        state: Current agent state
-        
-    Returns:
-        Updated agent state with next action
     """
     logger.info("Reasoning: Determining next action")
     
@@ -381,117 +373,11 @@ def reasoning(state: AgentState) -> AgentState:
     
     # Generate response from LLM
     model = genai.GenerativeModel(
-        os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
-        tools=[
-            {
-                "name": "search_tasks",
-                "description": "Search for tasks in Notion based on a query",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The search query"
-                        },
-                        "limit": {
-                            "type": "integer",
-                            "description": "Maximum number of results to return",
-                            "default": 5
-                        }
-                    },
-                    "required": ["query"]
-                }
-            },
-            {
-                "name": "update_task",
-                "description": "Update a task in Notion",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "task_id": {
-                            "type": "string",
-                            "description": "The Notion page ID of the task"
-                        },
-                        "properties": {
-                            "type": "object",
-                            "description": "Dictionary of properties to update"
-                        }
-                    },
-                    "required": ["task_id", "properties"]
-                }
-            },
-            {
-                "name": "create_task",
-                "description": "Create a new task in Notion",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "task_data": {
-                            "type": "object",
-                            "description": "Dictionary with task properties"
-                        }
-                    },
-                    "required": ["task_data"]
-                }
-            },
-            {
-                "name": "send_notification",
-                "description": "Send a notification to the user",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "recipient": {
-                            "type": "string",
-                            "description": "Email address of the recipient"
-                        },
-                        "subject": {
-                            "type": "string",
-                            "description": "Subject line of the notification"
-                        },
-                        "message": {
-                            "type": "string",
-                            "description": "Body of the notification"
-                        },
-                        "priority": {
-                            "type": "string",
-                            "enum": ["low", "normal", "high"],
-                            "default": "normal",
-                            "description": "Priority level of the notification"
-                        }
-                    },
-                    "required": ["recipient", "subject", "message"]
-                }
-            },
-            {
-                "name": "get_routines",
-                "description": "Get the user's routines from Notion",
-                "parameters": {
-                    "type": "object",
-                    "properties": {}
-                }
-            }
-        ]
+        os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     )
     
     try:
         response = model.generate_content(messages)
-        
-        # Check for tool calls
-        state["tool_calls"] = []
-        if hasattr(response, "candidates") and response.candidates:
-            candidate = response.candidates[0]
-            if hasattr(candidate, "content") and candidate.content:
-                content = candidate.content
-                
-                # Process tool calls
-                if hasattr(content, "parts"):
-                    for part in content.parts:
-                        if hasattr(part, "function_call"):
-                            function_call = part.function_call
-                            state["tool_calls"].append({
-                                "name": function_call.name,
-                                "arguments": json.loads(function_call.args)
-                            })
         
         # Update messages
         if not state.get("messages"):
@@ -501,6 +387,25 @@ def reasoning(state: AgentState) -> AgentState:
             "role": "assistant",
             "parts": [response.text]
         })
+        
+        # Determine next action based on response
+        response_text = response.text.lower()
+        
+        # Simple action determination logic
+        if "search" in response_text or "find" in response_text:
+            state["next_action"] = "search_tasks"
+            # Extract search query from response
+            state["current_query"] = "pending tasks"  # Default query
+        elif "update" in response_text or "schedule" in response_text:
+            state["next_action"] = "update_task"
+        elif "create" in response_text or "add" in response_text:
+            state["next_action"] = "create_task"
+        elif "notify" in response_text or "send" in response_text:
+            state["next_action"] = "send_notification"
+        elif "routine" in response_text:
+            state["next_action"] = "get_routines"
+        else:
+            state["next_action"] = "end"
         
         return state
     except Exception as e:
@@ -512,63 +417,57 @@ def reasoning(state: AgentState) -> AgentState:
 
 def action(state: AgentState) -> Union[AgentState, Literal["reasoning", "end"]]:
     """
-    Action node: Execute tool calls.
-    
-    Args:
-        state: Current agent state
-        
-    Returns:
-        Next node to transition to
+    Action node: Execute the next action.
     """
-    tool_calls = state.get("tool_calls", [])
+    next_action = state.get("next_action")
     
-    if not tool_calls:
-        logger.info("Action: No tool calls to execute, ending")
+    if not next_action or next_action == "end":
+        logger.info("Action: No action to execute, ending")
         return "end"
     
-    logger.info(f"Action: Executing {len(tool_calls)} tool call(s)")
+    logger.info(f"Action: Executing {next_action}")
     
     # Initialize tool_results if not present
     if "tool_results" not in state:
         state["tool_results"] = []
     
-    # Execute each tool call
-    for tool_call in tool_calls:
-        tool_name = tool_call["name"]
-        arguments = tool_call["arguments"]
-        
-        if tool_name in TOOLS:
-            try:
-                logger.info(f"Executing tool: {tool_name} with args: {arguments}")
-                tool_fn = TOOLS[tool_name]
-                result = tool_fn(**arguments)
-                
+    # Execute the action
+    if next_action in TOOLS:
+        try:
+            logger.info(f"Executing tool: {next_action}")
+            tool_fn = TOOLS[next_action]
+            updated_state = tool_fn(state)
+            
+            # Add result to tool_results
+            result_key = f"{next_action}_result"
+            if result_key in updated_state:
                 state["tool_results"].append({
-                    "tool_name": tool_name,
-                    "arguments": arguments,
-                    "result": result
+                    "tool_name": next_action,
+                    "result": updated_state[result_key]
                 })
-            except Exception as e:
-                error = f"Error executing tool {tool_name}: {str(e)}"
-                logger.error(error)
-                
-                state["tool_results"].append({
-                    "tool_name": tool_name,
-                    "arguments": arguments,
-                    "result": {"success": False, "error": error}
-                })
-        else:
-            error = f"Unknown tool: {tool_name}"
+            
+            # Update state with tool results
+            state.update(updated_state)
+            
+        except Exception as e:
+            error = f"Error executing tool {next_action}: {str(e)}"
             logger.error(error)
             
             state["tool_results"].append({
-                "tool_name": tool_name,
-                "arguments": arguments,
+                "tool_name": next_action,
                 "result": {"success": False, "error": error}
             })
+    else:
+        error = f"Unknown action: {next_action}"
+        logger.error(error)
+        
+        state["tool_results"].append({
+            "tool_name": next_action,
+            "result": {"success": False, "error": error}
+        })
     
-    # Clear tool calls
-    state["tool_calls"] = []
+    # Clear next_action
+    state["next_action"] = None
     
     # Check if we need to do more reasoning
     if any(not result["result"].get("success", True) for result in state["tool_results"]):
@@ -629,13 +528,26 @@ def build_graph() -> StateGraph:
     graph.add_node("action", action)
     graph.add_node("save_state", save_state)
     
-    # Add edges
-    graph.add_edge("perception", "reasoning")
-    graph.add_edge("reasoning", "action")
-    graph.add_edge("action", "reasoning")
-    graph.add_edge("action", "end")
-    graph.add_edge("reasoning", "save_state")
-    graph.add_edge("save_state", "end")
+    # Add conditional edges
+    graph.add_conditional_edges(
+        "perception",
+        lambda x: "reasoning"
+    )
+    
+    graph.add_conditional_edges(
+        "reasoning",
+        lambda x: "action" if x.get("next_action") else "save_state"
+    )
+    
+    graph.add_conditional_edges(
+        "action",
+        lambda x: "reasoning" if x.get("next_action") else "save_state"
+    )
+    
+    graph.add_conditional_edges(
+        "save_state",
+        lambda x: END
+    )
     
     # Set entry point
     graph.set_entry_point("perception")
@@ -669,8 +581,13 @@ def run_agent(goal: str = "daily_planning") -> Dict[str, Any]:
     # Build graph
     graph = build_graph()
     
-    # Run the graph
-    result = graph.invoke(initial_state)
+    # Run the graph using the correct method
+    try:
+        # Try the newer API first
+        result = graph.invoke(initial_state)
+    except AttributeError:
+        # Fall back to older API
+        result = graph.run(initial_state)
     
     logger.info("Agent run completed")
     

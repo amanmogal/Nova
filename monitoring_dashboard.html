@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Notion Agent - Monitoring Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-healthy {
+            background-color: #4CAF50;
+        }
+
+        .status-warning {
+            background-color: #FF9800;
+        }
+
+        .status-error {
+            background-color: #F44336;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            color: #333;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .sync-history {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .sync-history h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .history-item.failure {
+            border-left-color: #F44336;
+        }
+
+        .history-status {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .history-status.success {
+            color: #4CAF50;
+        }
+
+        .history-status.failure {
+            color: #F44336;
+        }
+
+        .history-details {
+            text-align: right;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn:hover {
+            background: #45a049;
+        }
+
+        .manual-sync-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .manual-sync-btn:hover {
+            background: #1976D2;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f44336;
+        }
+
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Nova Notion Agent</h1>
+            <p>Monitoring Dashboard</p>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh Dashboard</button>
+            <button class="manual-sync-btn" onclick="triggerManualSync()">⚡ Manual Sync</button>
+        </div>
+
+        <div id="message-container"></div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3>
+                    <span class="status-indicator" id="system-status"></span>
+                    System Status
+                </h3>
+                <div class="metric">
+                    <span class="metric-label">Overall Health</span>
+                    <span class="metric-value" id="overall-health">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Scheduler Status</span>
+                    <span class="metric-value" id="scheduler-status">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value" id="uptime">Loading...</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>
+                    <span class="status-indicator" id="sync-status"></span>
+                    Sync Status
+                </h3>
+                <div class="metric">
+                    <span class="metric-label">Last Sync</span>
+                    <span class="metric-value" id="last-sync">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Successful</span>
+                    <span class="metric-value" id="last-successful">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Consecutive Failures</span>
+                    <span class="metric-value" id="consecutive-failures">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Errors</span>
+                    <span class="metric-value" id="total-errors">Loading...</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📊 Performance Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">Tasks Processed</span>
+                    <span class="metric-value" id="tasks-processed">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Chunks Created</span>
+                    <span class="metric-value" id="chunks-created">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Sync Duration</span>
+                    <span class="metric-value" id="sync-duration">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Error Rate</span>
+                    <span class="metric-value" id="error-rate">Loading...</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📈 Statistics</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Syncs</span>
+                    <span class="metric-value" id="total-syncs">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Success Rate</span>
+                    <span class="metric-value" id="success-rate">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Average Duration</span>
+                    <span class="metric-value" id="avg-duration">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last 24h Syncs</span>
+                    <span class="metric-value" id="last-24h">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sync-history">
+            <h3>🕒 Recent Sync History</h3>
+            <div id="sync-history-list">
+                <p style="text-align: center; color: #666;">Loading sync history...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000'; // Update this to your actual API URL
+
+        function showMessage(message, type = 'success') {
+            const container = document.getElementById('message-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+            container.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'Never';
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return 'N/A';
+            return `${seconds.toFixed(2)}s`;
+        }
+
+        function updateStatusIndicator(elementId, isHealthy) {
+            const element = document.getElementById(elementId);
+            element.className = 'status-indicator ' + (isHealthy ? 'status-healthy' : 'status-error');
+        }
+
+        async function refreshDashboard() {
+            try {
+                const buttons = document.querySelectorAll('.refresh-btn, .manual-sync-btn');
+                buttons.forEach(btn => btn.classList.add('loading'));
+
+                // Fetch dashboard overview
+                const overviewResponse = await fetch(`${API_BASE}/dashboard/overview`);
+                const overview = await overviewResponse.json();
+
+                // Fetch detailed metrics
+                const metricsResponse = await fetch(`${API_BASE}/monitoring/metrics`);
+                const metrics = await metricsResponse.json();
+
+                // Update system status
+                updateStatusIndicator('system-status', overview.system_status.overall_health);
+                document.getElementById('overall-health').textContent = overview.system_status.overall_health ? 'Healthy' : 'Unhealthy';
+                document.getElementById('scheduler-status').textContent = overview.system_status.scheduler_status;
+                document.getElementById('uptime').textContent = `${overview.system_status.uptime_hours}h`;
+
+                // Update sync status
+                updateStatusIndicator('sync-status', overview.sync_status.is_healthy);
+                document.getElementById('last-sync').textContent = formatTimestamp(overview.sync_status.last_sync);
+                document.getElementById('last-successful').textContent = formatTimestamp(overview.sync_status.last_successful_sync);
+                document.getElementById('consecutive-failures').textContent = overview.sync_status.consecutive_failures;
+                document.getElementById('total-errors').textContent = overview.sync_status.total_errors;
+
+                // Update performance metrics
+                document.getElementById('tasks-processed').textContent = overview.sync_status.tasks_processed;
+                document.getElementById('chunks-created').textContent = overview.sync_status.chunks_created;
+                document.getElementById('sync-duration').textContent = formatDuration(overview.sync_status.sync_duration);
+                document.getElementById('error-rate').textContent = `${overview.quick_stats.error_rate.toFixed(1)}%`;
+
+                // Update statistics
+                document.getElementById('total-syncs').textContent = metrics.statistics.total_syncs;
+                document.getElementById('success-rate').textContent = `${metrics.statistics.success_rate.toFixed(1)}%`;
+                document.getElementById('avg-duration').textContent = formatDuration(metrics.statistics.average_duration);
+                document.getElementById('last-24h').textContent = metrics.statistics.last_24h_syncs;
+
+                // Update sync history
+                updateSyncHistory(overview.recent_activity);
+
+            } catch (error) {
+                console.error('Error refreshing dashboard:', error);
+                showMessage('Failed to refresh dashboard: ' + error.message, 'error');
+            } finally {
+                const buttons = document.querySelectorAll('.refresh-btn, .manual-sync-btn');
+                buttons.forEach(btn => btn.classList.remove('loading'));
+            }
+        }
+
+        function updateSyncHistory(history) {
+            const container = document.getElementById('sync-history-list');
+            
+            if (!history || history.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No sync history available</p>';
+                return;
+            }
+
+            container.innerHTML = history.map(item => `
+                <div class="history-item ${item.status === 'failure' ? 'failure' : ''}">
+                    <div>
+                        <div class="history-status ${item.status}">${item.status}</div>
+                        <div style="font-size: 0.8rem; color: #999; margin-top: 5px;">
+                            ${formatTimestamp(item.timestamp)}
+                        </div>
+                    </div>
+                    <div class="history-details">
+                        <div>${item.tasks_processed} tasks</div>
+                        <div>${item.chunks_created} chunks</div>
+                        <div>${formatDuration(item.duration)}</div>
+                        ${item.error ? `<div style="color: #f44336; font-size: 0.8rem;">${item.error}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function triggerManualSync() {
+            try {
+                const button = document.querySelector('.manual-sync-btn');
+                button.classList.add('loading');
+                button.textContent = '🔄 Syncing...';
+
+                const response = await fetch(`${API_BASE}/sync/manual`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showMessage('Manual sync completed successfully!');
+                    // Refresh dashboard after a short delay
+                    setTimeout(refreshDashboard, 1000);
+                } else {
+                    const error = await response.json();
+                    showMessage('Manual sync failed: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                console.error('Error triggering manual sync:', error);
+                showMessage('Failed to trigger manual sync: ' + error.message, 'error');
+            } finally {
+                const button = document.querySelector('.manual-sync-btn');
+                button.classList.remove('loading');
+                button.textContent = '⚡ Manual Sync';
+            }
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+
+        // Initial load
+        refreshDashboard();
+    </script>
+</body>
+</html> 
