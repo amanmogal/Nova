@@ -31,7 +31,7 @@
 7. Test components: `python src/test.py`
 
 ## Phase 2: Core Engine (Next Up) 🔄
-
+                                            python -m uvicorn src.server_simple:app --reload --host 0.0.0.0 --port 8000
 ### Planned Development
 - 🔄 Complete and optimize RAG pipeline:
   - Implement embeddings refresh strategy

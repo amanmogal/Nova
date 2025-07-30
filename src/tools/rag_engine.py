@@ -125,7 +125,7 @@ class RAGEngine:
     async def _sync_tasks(self, last_sync: Optional[str] = None):
         """Sync tasks from Notion to ChromaDB."""
         # Get all tasks from Notion
-        tasks = self.notion.get_tasks()
+        tasks = await self.notion.get_tasks()
         
         # If last_sync is provided, filter tasks that were edited after that time
         if last_sync:
@@ -206,7 +206,7 @@ class RAGEngine:
     async def _sync_routines(self, last_sync: Optional[str] = None):
         """Sync routines from Notion to ChromaDB."""
         # Get all routines from Notion
-        routines = self.notion.get_routines()
+        routines = await self.notion.get_routines()
         
         # Currently Notion API for routines not tracking last_edited_time in schema; perform full refresh if last_sync is None
         

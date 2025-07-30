@@ -74,7 +74,7 @@ class NotionConnector:
         if filter_criteria:
             query_params["filter"] = filter_criteria
             
-        response = self.client.databases.query(**query_params)
+        response = await self.client.databases.query(**query_params)
         tasks = []
         
         for result in response.get("results", []):
@@ -101,7 +101,7 @@ class NotionConnector:
             
         return tasks
     
-    def update_task(self, task_id: str, properties: Dict[str, Any]) -> bool:
+    async def update_task(self, task_id: str, properties: Dict[str, Any]) -> bool:
         """
         Update a task's properties in Notion.
         
@@ -113,7 +113,7 @@ class NotionConnector:
             True if update was successful
         """
         try:
-            self.client.pages.update(page_id=task_id, properties=properties)
+            await self.client.pages.update(page_id=task_id, properties=properties)
             return True
         except Exception as e:
             print(f"Error updating task {task_id}: {str(e)}")
@@ -173,14 +173,14 @@ class NotionConnector:
             print(f"Error creating task: {str(e)}")
             return None
 
-    def get_routines(self) -> List[RoutineSchema]:
+    async def get_routines(self) -> List[RoutineSchema]:
         """
         Fetch routines from the Notion database.
         
         Returns:
             List of RoutineSchema objects representing routines
         """
-        response = self.client.databases.query(database_id=self.routines_db_id)
+        response = await self.client.databases.query(database_id=self.routines_db_id)
         routines = []
         
         for result in response.get("results", []):

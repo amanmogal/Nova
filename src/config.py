@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     notion_routines_database_id: str = Field(..., env="NOTION_ROUTINES_DATABASE_ID")
 
     # Gemini Model
-    gemini_model: str = Field("gemini-pro", env="GEMINI_MODEL")
+    gemini_model: str = Field("gemini-2.5-flash", env="GEMINI_MODEL")
 
     # ChromaDB
     chroma_db_path: str = Field("./data/chroma", env="CHROMA_DB_PATH")

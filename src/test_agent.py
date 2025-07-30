@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.agent import run_agent
 from src.tools.rag_engine import RAGEngine
 
-def test_agent_basic():
+async def test_agent_basic():
     """Test basic agent functionality."""
     print(" Testing Agent Basic Functionality")
     print("=" * 50)
@@ -26,7 +26,7 @@ def test_agent_basic():
     # Test daily planning
     print("\n Testing Daily Planning Agent...")
     try:
-        result = run_agent("daily_planning")
+        result = await run_agent("daily_planning")
         print("Agent run completed successfully")
         print(f" Final state keys: {list(result.keys())}")
         
@@ -45,7 +45,7 @@ def test_agent_basic():
         import traceback
         traceback.print_exc()
 
-def test_agent_tools():
+async def test_agent_tools():
     """Test individual agent tools."""
     print("\n🔧 Testing Agent Tools")
     print("=" * 50)
@@ -72,7 +72,7 @@ def test_agent_tools():
     print(" Testing get_routines_tool...")
     try:
         state = {}
-        result = get_routines_tool(state)
+        result = await get_routines_tool(state)
         if "routines_result" in result and result["routines_result"].get("success"):
             routines = result["routines_result"]["routines"]
             print(f" Found {len(routines)} routines")
@@ -81,12 +81,16 @@ def test_agent_tools():
     except Exception as e:
         print(f" Error testing routines tool: {str(e)}")
 
-if __name__ == "__main__":
+async def main():
     print(f"Starting Agent Tests at {datetime.now()}")
     print("=" * 60)
     
-    test_agent_tools()
-    test_agent_basic()
+    await test_agent_tools()
+    await test_agent_basic()
     
     print("\n" + "=" * 60)
-    print("🏁 Agent Tests Completed") 
+    print("🏁 Agent Tests Completed")
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main()) 

@@ -16,8 +16,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import google.generativeai as genai
 from dotenv import load_dotenv
 from langsmith import Client as LangSmithClient
-from langgraph.graph import StateGraph, END
+# LangGraph imports removed - using simple loop implementation instead
+# from langgraph.graph import StateGraph, END
 from src.tools.notion_connector import NotionConnector
+from src.config import get_settings
 from src.tools.rag_engine import RAGEngine
 from src.tools.notification_tool import NotificationTool
 from src.db.supabase_connector import SupabaseConnector
@@ -47,7 +49,7 @@ if os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true":
     try:
         _ls_client = LangSmithClient()
         logger.info(
-            "LangSmith tracing ENABLED – project: %s", _ls_client.project_name
+            "LangSmith tracing ENABLED – project: %s", get_settings().LANGCHAIN_PROJECT
         )
     except Exception as exc:
         logger.warning("LangSmith tracing could not be initialised: %s", exc)
@@ -112,7 +114,7 @@ def search_tasks_tool(state: AgentState) -> AgentState:
         return state
 
 
-def update_task_tool(state: AgentState) -> AgentState:
+async def update_task_tool(state: AgentState) -> AgentState:
     """
     Update a task in Notion.
     """
@@ -120,8 +122,9 @@ def update_task_tool(state: AgentState) -> AgentState:
         # Get task data from state
         task_id = state.get("current_task_id", "")
         properties = state.get("current_task_properties", {})
+        logger.info(f"Attempting to update task with ID: {task_id} and properties: {properties}")
         
-        result = notion.update_task(task_id, properties)
+        result = await notion.update_task(task_id, properties)
         
         # Log the action
         db.log_action(
@@ -147,7 +150,7 @@ def update_task_tool(state: AgentState) -> AgentState:
         return state
 
 
-def create_task_tool(state: AgentState) -> AgentState:
+async def create_task_tool(state: AgentState) -> AgentState:
     """
     Create a new task in Notion.
     """
@@ -155,7 +158,7 @@ def create_task_tool(state: AgentState) -> AgentState:
         # Get task data from state
         task_data = state.get("new_task_data", {})
         
-        task_id = notion.create_task(task_data)
+        task_id = await notion.create_task(task_data)
         
         if task_id:
             # Log the action
@@ -236,24 +239,13 @@ def send_notification_tool(state: AgentState) -> AgentState:
         return state
 
 
-def get_routines_tool(state: AgentState) -> AgentState:
+async def get_routines_tool(state: AgentState) -> AgentState:
     """
     Get the user's routines from Notion.
     """
     try:
-        routines = notion.get_routines()
-        
-        # Convert to dictionary format
-        routines_data = []
-        for routine in routines:
-            routines_data.append({
-                "id": routine.id,
-                "name": routine.name,
-                "time_blocks": [block.dict() for block in routine.time_blocks],
-                "recurring": routine.recurring,
-                "recurrence_pattern": routine.recurrence_pattern,
-                "url": routine.url
-            })
+        # Get routines from Notion
+        routines_data = await notion.get_routines()
         
         # Log the action
         db.log_action(
@@ -320,89 +312,105 @@ def reasoning(state: AgentState) -> AgentState:
     # Prepare the prompt
     messages = []
     
-    # System prompt
-    messages.append({
-        "role": "system",
-        "parts": [SYSTEM_PROMPT]
-    })
+    # Combine system prompt with goal-specific prompt
+    system_prompt = SYSTEM_PROMPT
     
-    # Add goal-specific prompt
     if state["goal"] == "daily_planning":
-        messages.append({
-            "role": "user",
-            "parts": [DAILY_PLANNING_PROMPT]
-        })
+        system_prompt += "\n\n" + DAILY_PLANNING_PROMPT
     elif state["goal"] == "task_reprioritization":
-        messages.append({
-            "role": "user",
-            "parts": [TASK_REPRIORITIZATION_PROMPT]
-        })
+        system_prompt += "\n\n" + TASK_REPRIORITIZATION_PROMPT
     
-    # Add context
-    context_str = f"Current time: {datetime.now().isoformat()}\n\n"
+    # Add context (simplified to avoid content filtering)
+    context_str = f"Current time: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
     
-    # Add tasks
-    context_str += f"Available Tasks ({len(state['context'].get('tasks', []))}):\n"
-    for i, task in enumerate(state["context"].get("tasks", []), 1):
-        context_str += f"{i}. {task['content']}\n"
-        
-    # Add routines
-    context_str += f"\nRoutines ({len(state['context'].get('routines', []))}):\n"
-    for i, routine in enumerate(state["context"].get("routines", []), 1):
-        context_str += f"{i}. {routine['content']}\n"
+    # Add task count
+    task_count = len(state['context'].get('tasks', []))
+    context_str += f"Available tasks: {task_count}\n"
+    
+    # Add routine count
+    routine_count = len(state['context'].get('routines', []))
+    context_str += f"Available routines: {routine_count}\n"
     
     # Add calendar preferences
-    context_str += "\nCalendar Preferences:\n"
-    context_str += f"- Calendar View Start: {state['context'].get('calendar_view_start', '10:00')}\n"
-    context_str += f"- Calendar View End: {state['context'].get('calendar_view_end', '02:00')}\n"
+    context_str += f"Work hours: {state['context'].get('calendar_view_start', '10:00')} to {state['context'].get('calendar_view_end', '02:00')}\n"
+    
+    # Create the user message with system prompt and context
+    user_message = f"{system_prompt}\n\n{context_str}"
+    
+    # Add previous tool results to context (simplified to avoid content filtering)
+    if state.get("tool_results"):
+        user_message += "\n\nPrevious actions completed successfully."
     
     messages.append({
         "role": "user",
-        "parts": [context_str]
+        "parts": [user_message]
     })
     
-    # Add previous messages if available
-    messages.extend(state.get("messages", []))
-    
-    # Add previous tool results
-    for result in state.get("tool_results", []):
-        messages.append({
-            "role": "tool",
-            "parts": [json.dumps(result["result"])]
-        })
+    # Add previous messages if available (but keep them simple)
+    for msg in state.get("messages", []):
+        if msg.get("role") == "assistant":
+            messages.append({
+                "role": "model",
+                "parts": [msg.get("parts", [""])[0]]
+            })
     
     # Generate response from LLM
-    model = genai.GenerativeModel(
-        os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-    )
+    settings = get_settings()
+    model = genai.GenerativeModel(settings.gemini_model)
     
     try:
         response = model.generate_content(messages)
         
+        # Check if response has candidates before accessing .text
+        if not response.candidates:
+            logger.error(f"LLM response has no candidates. Prompt feedback: {response.prompt_feedback}")
+            state["error"] = "LLM response has no candidates."
+            return state
+
         # Update messages
         if not state.get("messages"):
             state["messages"] = []
         
+        # Handle response text properly - get text from the first candidate's content
+        candidate = response.candidates[0]
+        if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts') and candidate.content.parts:
+            response_text = candidate.content.parts[0].text
+        else:
+            response_text = str(candidate)
+        
         state["messages"].append({
             "role": "assistant",
-            "parts": [response.text]
+            "parts": [response_text]
         })
         
         # Determine next action based on response
-        response_text = response.text.lower()
+        response_text_lower = response_text.lower()
         
         # Simple action determination logic
-        if "search" in response_text or "find" in response_text:
+        if "search" in response_text_lower or "find" in response_text_lower:
             state["next_action"] = "search_tasks"
             # Extract search query from response
             state["current_query"] = "pending tasks"  # Default query
-        elif "update" in response_text or "schedule" in response_text:
-            state["next_action"] = "update_task"
-        elif "create" in response_text or "add" in response_text:
+        elif "update" in response_text_lower or "schedule" in response_text_lower:
+        
+            if state.get("context", {}).get("tasks"):
+                state["next_action"] = "update_task"
+                # For now, set a default task_id 
+                # In a real implementation, the agent should identify which specific task to update
+                if state["context"]["tasks"]:
+                    # Use the parent_id from metadata, which is the actual Notion page ID
+                    task_metadata = state["context"]["tasks"][0]["metadata"]
+                    state["current_task_id"] = task_metadata.get("parent_id", "")
+                else:
+                    state["current_task_id"] = ""
+                state["current_task_properties"] = {"Status": {"select": {"name": "In Progress"}}}
+            else:
+                state["next_action"] = "end"
+        elif "create" in response_text_lower or "add" in response_text_lower:
             state["next_action"] = "create_task"
-        elif "notify" in response_text or "send" in response_text:
+        elif "notify" in response_text_lower or "send" in response_text_lower:
             state["next_action"] = "send_notification"
-        elif "routine" in response_text:
+        elif "routine" in response_text_lower:
             state["next_action"] = "get_routines"
         else:
             state["next_action"] = "end"
@@ -415,36 +423,31 @@ def reasoning(state: AgentState) -> AgentState:
         return state
 
 
-def action(state: AgentState) -> Union[AgentState, Literal["reasoning", "end"]]:
+async def execute_action(state: AgentState) -> AgentState:
     """
-    Action node: Execute the next action.
+    Execute the next action in the state.
     """
     next_action = state.get("next_action")
     
     if not next_action or next_action == "end":
         logger.info("Action: No action to execute, ending")
-        return "end"
+        return state
     
     logger.info(f"Action: Executing {next_action}")
-    
-    # Initialize tool_results if not present
-    if "tool_results" not in state:
-        state["tool_results"] = []
     
     # Execute the action
     if next_action in TOOLS:
         try:
             logger.info(f"Executing tool: {next_action}")
             tool_fn = TOOLS[next_action]
-            updated_state = tool_fn(state)
             
-            # Add result to tool_results
-            result_key = f"{next_action}_result"
-            if result_key in updated_state:
-                state["tool_results"].append({
-                    "tool_name": next_action,
-                    "result": updated_state[result_key]
-                })
+            # Check if tool is async
+            import asyncio
+            import inspect
+            if inspect.iscoroutinefunction(tool_fn):
+                updated_state = await tool_fn(state)
+            else:
+                updated_state = tool_fn(state)
             
             # Update state with tool results
             state.update(updated_state)
@@ -452,6 +455,9 @@ def action(state: AgentState) -> Union[AgentState, Literal["reasoning", "end"]]:
         except Exception as e:
             error = f"Error executing tool {next_action}: {str(e)}"
             logger.error(error)
+            
+            if "tool_results" not in state:
+                state["tool_results"] = []
             
             state["tool_results"].append({
                 "tool_name": next_action,
@@ -461,21 +467,15 @@ def action(state: AgentState) -> Union[AgentState, Literal["reasoning", "end"]]:
         error = f"Unknown action: {next_action}"
         logger.error(error)
         
+        if "tool_results" not in state:
+            state["tool_results"] = []
+        
         state["tool_results"].append({
             "tool_name": next_action,
             "result": {"success": False, "error": error}
         })
     
-    # Clear next_action
-    state["next_action"] = None
-    
-    # Check if we need to do more reasoning
-    if any(not result["result"].get("success", True) for result in state["tool_results"]):
-        # If there were errors, go back to reasoning
-        return "reasoning"
-    
-    # Continue with another round of reasoning
-    return "reasoning"
+    return state
 
 
 def save_state(state: AgentState) -> AgentState:
@@ -494,13 +494,11 @@ def save_state(state: AgentState) -> AgentState:
         # Save state to Supabase
         db.save_agent_state({
             "goal": state["goal"],
-            "context_summary": {
+            "context": {
                 "tasks_count": len(state["context"].get("tasks", [])),
                 "routines_count": len(state["context"].get("routines", [])),
                 "timestamp": state["context"].get("timestamp")
-            },
-            "messages_count": len(state.get("messages", [])),
-            "tool_results_count": len(state.get("tool_results", []))
+            }
         })
         
         logger.info("State saved successfully")
@@ -512,50 +510,10 @@ def save_state(state: AgentState) -> AgentState:
     return state
 
 
-def build_graph() -> StateGraph:
-    """
-    Build the LangGraph state graph.
-    Following Factor 8: Own Your Control Flow.
-    
-    Returns:
-        StateGraph instance
-    """
-    graph = StateGraph(AgentState)
-    
-    # Add nodes
-    graph.add_node("perception", perception)
-    graph.add_node("reasoning", reasoning)
-    graph.add_node("action", action)
-    graph.add_node("save_state", save_state)
-    
-    # Add conditional edges
-    graph.add_conditional_edges(
-        "perception",
-        lambda x: "reasoning"
-    )
-    
-    graph.add_conditional_edges(
-        "reasoning",
-        lambda x: "action" if x.get("next_action") else "save_state"
-    )
-    
-    graph.add_conditional_edges(
-        "action",
-        lambda x: "reasoning" if x.get("next_action") else "save_state"
-    )
-    
-    graph.add_conditional_edges(
-        "save_state",
-        lambda x: END
-    )
-    
-    # Set entry point
-    graph.set_entry_point("perception")
-    
-    return graph
+# build_graph function removed - using simple loop implementation instead
 
 
-def run_agent(goal: str = "daily_planning") -> Dict[str, Any]:
+async def run_agent(goal: str = "daily_planning") -> Dict[str, Any]:
     """
     Run the agent with the specified goal.
     
@@ -578,23 +536,51 @@ def run_agent(goal: str = "daily_planning") -> Dict[str, Any]:
         error=None
     )
     
-    # Build graph
-    graph = build_graph()
+    # Run the agent using a simple loop instead of LangGraph
+    # This avoids the LangGraph API compatibility issues
+    state = initial_state.copy()
     
-    # Run the graph using the correct method
     try:
-        # Try the newer API first
-        result = graph.invoke(initial_state)
-    except AttributeError:
-        # Fall back to older API
-        result = graph.run(initial_state)
+        # Step 1: Perception - Gather context
+        logger.info("Step 1: Perception - Gathering context")
+        state = perception(state)
+        
+        # Step 2: Reasoning - Determine next action
+        logger.info("Step 2: Reasoning - Determining next action")
+        state = reasoning(state)
+        
+        # Step 3: Action - Execute actions in a loop
+        max_iterations = 5  # Prevent infinite loops
+        iteration = 0
+        
+        while state.get("next_action") and state.get("next_action") != "end" and iteration < max_iterations:
+            logger.info(f"Step 3.{iteration + 1}: Action - Executing {state.get('next_action')}")
+            
+            # Execute the action
+            state = await execute_action(state)
+            
+            # Clear next_action to prevent infinite loop
+            state["next_action"] = None
+            
+            # Continue with reasoning for next action
+            state = reasoning(state)
+            iteration += 1
+        
+        # Step 4: Save state
+        logger.info("Step 4: Saving state")
+        state = save_state(state)
+        
+        logger.info("Agent run completed successfully")
+        
+    except Exception as e:
+        error = f"Error in agent execution: {str(e)}"
+        logger.error(error)
+        state["error"] = error
     
-    logger.info("Agent run completed")
-    
-    return result
+    return state
 
 
-def main():
+async def main():
     """Main function."""
     # Sync Notion data to vector database
     logger.info("Syncing Notion data to vector database")
@@ -602,8 +588,9 @@ def main():
     
     # Run the agent
     goal = os.getenv("AGENT_GOAL", "daily_planning")
-    run_agent(goal)
+    await run_agent(goal)
 
 
 if __name__ == "__main__":
-    main() 
+    import asyncio
+    asyncio.run(main()) 
