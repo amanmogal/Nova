@@ -16,8 +16,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import google.generativeai as genai
 from dotenv import load_dotenv
 from langsmith import Client as LangSmithClient
-# LangGraph imports removed - using simple loop implementation instead
-# from langgraph.graph import StateGraph, END
+# LangGraph imports for proper control flow
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver
 from src.tools.notion_connector import NotionConnector
 from src.config import get_settings
 from src.tools.rag_engine import RAGEngine
@@ -88,6 +90,11 @@ def search_tasks_tool(state: AgentState) -> AgentState:
         query = state.get("current_query", "")
         limit = state.get("search_limit", 5)
         
+        # Ensure query is not empty
+        if not query or not query.strip():
+            query = "pending tasks"
+            logger.info(f"Empty query provided, using default: {query}")
+        
         tasks = rag_engine.search_tasks(query, n_results=limit)
         
         # Log the action
@@ -98,6 +105,30 @@ def search_tasks_tool(state: AgentState) -> AgentState:
         
         # Update state with results
         state["search_results"] = {"success": True, "tasks": tasks}
+        
+        # If we have a pending update, try to find the matching task
+        if state.get("pending_update"):
+            pending_update = state["pending_update"]
+            original_task_id = pending_update["original_task_id"]
+            
+            # Look for a task with matching title
+            for task in tasks:
+                task_title = task.get("metadata", {}).get("title", "")
+                if original_task_id.lower() in task_title.lower():
+                    # Found the task, set up the update
+                    state["current_task_id"] = task.get("id", "")
+                    state["current_task_properties"] = pending_update["properties"]
+                    state["next_action"] = "update_task"
+                    # Clear the pending update
+                    state.pop("pending_update", None)
+                    logger.info(f"Found task '{original_task_id}' with ID {task.get('id', '')}, proceeding with update")
+                    break
+            else:
+                # Task not found, clear pending update and end
+                state.pop("pending_update", None)
+                state["next_action"] = "end"
+                logger.warning(f"Task '{original_task_id}' not found in search results")
+        
         return state
     except Exception as e:
         error = f"Error searching tasks: {str(e)}"
@@ -280,8 +311,107 @@ TOOLS = {
     "get_routines": get_routines_tool
 }
 
-
 # LangGraph nodes
+def perception_node(state: AgentState) -> AgentState:
+    """Perception node: Gather context from environment."""
+    return perception(state)
+
+def reasoning_node(state: AgentState) -> AgentState:
+    """Reasoning node: Generate the next action based on context."""
+    return reasoning(state)
+
+def action_node(state: AgentState) -> AgentState:
+    """Action node: Execute the determined action."""
+    import asyncio
+    
+    # Run the async execute_action in an event loop
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If we're already in an event loop, we need to create a new one
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, execute_action(state))
+                return future.result()
+        else:
+            return loop.run_until_complete(execute_action(state))
+    except RuntimeError:
+        # If no event loop is running, create a new one
+        return asyncio.run(execute_action(state))
+
+def save_state_node(state: AgentState) -> AgentState:
+    """Save state node: Persist the current state."""
+    return save_state(state)
+
+def should_continue(state: AgentState) -> Literal["continue", "end"]:
+    """Determine if the agent should continue or end."""
+    next_action = state.get("next_action")
+    error = state.get("error")
+    
+    # Add loop counter to prevent infinite loops
+    loop_count = state.get("loop_count", 0)
+    state["loop_count"] = loop_count + 1
+    
+    # Prevent infinite loops (max 5 iterations to be safe)
+    if loop_count >= 5:
+        logger.warning("Agent ending due to maximum loop count reached")
+        return "end"
+    
+    # Detect if we're stuck in a search loop
+    if loop_count >= 3:
+        # Check if we've been doing the same action repeatedly
+        recent_actions = state.get("recent_actions", [])
+        if len(recent_actions) >= 3:
+            # Check if the last 3 actions are all search_tasks
+            if all(action == "search_tasks" for action in recent_actions[-3:]):
+                logger.warning("Agent ending due to search loop detection")
+                return "end"
+    
+    if error:
+        logger.error(f"Agent ending due to error: {error}")
+        return "end"
+    
+    if not next_action or next_action == "end":
+        logger.info("Agent ending - no more actions")
+        return "end"
+    
+    return "continue"
+
+def build_graph() -> StateGraph:
+    """Build the LangGraph workflow."""
+    # Create the graph
+    workflow = StateGraph(AgentState)
+    
+    # Add nodes
+    workflow.add_node("perception", perception_node)
+    workflow.add_node("reasoning", reasoning_node)
+    workflow.add_node("action", action_node)
+    workflow.add_node("save_state", save_state_node)
+    
+    # Set entry point
+    workflow.set_entry_point("perception")
+    
+    # Add edges
+    workflow.add_edge("perception", "reasoning")
+    workflow.add_edge("reasoning", "action")
+    workflow.add_edge("action", "save_state")
+    
+    # Add conditional edge from save_state
+    workflow.add_conditional_edges(
+        "save_state",
+        should_continue,
+        {
+            "continue": "reasoning",
+            "end": END
+        }
+    )
+    
+    return workflow.compile(checkpointer=MemorySaver())
+
+# Create the compiled graph
+graph = build_graph()
+
+# Core agent functions
 def perception(state: AgentState) -> AgentState:
     """
     Perception node: Gather context from the environment.
@@ -320,39 +450,68 @@ def reasoning(state: AgentState) -> AgentState:
     elif state["goal"] == "task_reprioritization":
         system_prompt += "\n\n" + TASK_REPRIORITIZATION_PROMPT
     
-    # Add context (simplified to avoid content filtering)
+    # Build comprehensive context
     context_str = f"Current time: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
     
-    # Add task count
-    task_count = len(state['context'].get('tasks', []))
+    # Add task details
+    tasks = state['context'].get('tasks', [])
+    task_count = len(tasks)
     context_str += f"Available tasks: {task_count}\n"
     
-    # Add routine count
-    routine_count = len(state['context'].get('routines', []))
-    context_str += f"Available routines: {routine_count}\n"
+    if tasks:
+        context_str += "Task details:\n"
+        for i, task in enumerate(tasks[:3]):  # Show first 3 tasks
+            metadata = task.get('metadata', {})
+            content = task.get('content', '')[:100]  # First 100 chars
+            context_str += f"  {i+1}. {metadata.get('title', 'Unknown')} - {metadata.get('status', 'No status')}\n"
+            context_str += f"     Content: {content}...\n"
+    
+    # Add routine details
+    routines = state['context'].get('routines', [])
+    routine_count = len(routines)
+    context_str += f"\nAvailable routines: {routine_count}\n"
+    
+    if routines:
+        context_str += "Routine details:\n"
+        for i, routine in enumerate(routines[:3]):  # Show first 3 routines
+            metadata = routine.get('metadata', {})
+            content = routine.get('content', '')[:100]  # First 100 chars
+            context_str += f"  {i+1}. {metadata.get('task', 'Unknown')} - {metadata.get('category', 'No category')}\n"
+            context_str += f"     Content: {content}...\n"
     
     # Add calendar preferences
-    context_str += f"Work hours: {state['context'].get('calendar_view_start', '10:00')} to {state['context'].get('calendar_view_end', '02:00')}\n"
+    context_str += f"\nWork hours: {state['context'].get('calendar_view_start', '10:00')} to {state['context'].get('calendar_view_end', '02:00')}\n"
+    
+    # Add previous tool results
+    if state.get("tool_results"):
+        context_str += "\nPrevious actions completed successfully.\n"
     
     # Create the user message with system prompt and context
     user_message = f"{system_prompt}\n\n{context_str}"
-    
-    # Add previous tool results to context (simplified to avoid content filtering)
-    if state.get("tool_results"):
-        user_message += "\n\nPrevious actions completed successfully."
     
     messages.append({
         "role": "user",
         "parts": [user_message]
     })
     
-    # Add previous messages if available (but keep them simple)
-    for msg in state.get("messages", []):
-        if msg.get("role") == "assistant":
-            messages.append({
-                "role": "model",
-                "parts": [msg.get("parts", [""])[0]]
-            })
+    # For now, don't add previous messages to prevent context issues
+    # This will be fixed in a future iteration with proper conversation management
+    # previous_messages = state.get("messages", [])
+    # if len(previous_messages) > 4:  # Keep only last 2 pairs (4 messages total)
+    #     previous_messages = previous_messages[-4:]
+    # 
+    # # Add previous messages in proper conversation format
+    # for msg in previous_messages:
+    #     if msg.get("role") == "assistant":
+    #         messages.append({
+    #             "role": "model",
+    #             "parts": [msg.get("parts", [""])[0]]
+    #         })
+    #     elif msg.get("role") == "user":
+    #         messages.append({
+    #             "role": "user",
+    #             "parts": [msg.get("parts", [""])[0]]
+    #         })
     
     # Generate response from LLM
     settings = get_settings()
@@ -378,42 +537,144 @@ def reasoning(state: AgentState) -> AgentState:
         else:
             response_text = str(candidate)
         
-        state["messages"].append({
-            "role": "assistant",
-            "parts": [response_text]
-        })
+        # For now, don't maintain message history to prevent context issues
+        # This will be fixed in a future iteration with proper conversation management
+        # state["messages"] = []  # Clear message history
         
-        # Determine next action based on response
-        response_text_lower = response_text.lower()
-        
-        # Simple action determination logic
-        if "search" in response_text_lower or "find" in response_text_lower:
-            state["next_action"] = "search_tasks"
-            # Extract search query from response
-            state["current_query"] = "pending tasks"  # Default query
-        elif "update" in response_text_lower or "schedule" in response_text_lower:
-        
-            if state.get("context", {}).get("tasks"):
-                state["next_action"] = "update_task"
-                # For now, set a default task_id 
-                # In a real implementation, the agent should identify which specific task to update
-                if state["context"]["tasks"]:
-                    # Use the parent_id from metadata, which is the actual Notion page ID
-                    task_metadata = state["context"]["tasks"][0]["metadata"]
-                    state["current_task_id"] = task_metadata.get("parent_id", "")
+        # Parse JSON response for structured tool calls
+        try:
+            # Extract JSON from response (handle markdown code blocks)
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}') + 1
+            
+            if json_start != -1 and json_end > json_start:
+                json_str = response_text[json_start:json_end]
+                logger.info(f"Attempting to parse JSON: {json_str}")
+                parsed_response = json.loads(json_str)
+                
+                # Extract action details
+                action = parsed_response.get('action', {})
+                tool_name = action.get('tool')
+                parameters = action.get('parameters', {})
+                reasoning = parsed_response.get('reasoning', '')
+                confidence = parsed_response.get('confidence', 0.5)
+                
+                logger.info(f"Parsed action: {tool_name} with parameters: {parameters}")
+                logger.info(f"Reasoning: {reasoning}")
+                logger.info(f"Confidence: {confidence}")
+                
+                # Set next action based on parsed JSON
+                if tool_name and tool_name in TOOLS:
+                    state["next_action"] = tool_name
+                    state["action_parameters"] = parameters
+                    state["action_reasoning"] = reasoning
+                    state["action_confidence"] = confidence
+                    
+                    # Set specific parameters for tools
+                    if tool_name == "search_tasks":
+                        state["current_query"] = parameters.get("query", "pending tasks")
+                    elif tool_name == "update_task":
+                        task_id = parameters.get("task_id", "")
+                        properties = parameters.get("properties", {})
+                        
+                        # If task_id is a title (not a UUID), we need to search for it first
+                        if task_id and not task_id.startswith(("21", "22", "23", "24", "25", "26", "27", "28", "29", "30")):
+                            # This is likely a task title, not an ID - search for it
+                            state["next_action"] = "search_tasks"
+                            state["current_query"] = task_id
+                            state["pending_update"] = {
+                                "properties": properties,
+                                "original_task_id": task_id
+                            }
+                            logger.info(f"Task ID '{task_id}' appears to be a title, searching for it first")
+                        elif tasks:
+                            # Use the first task's parent_id as default if no task_id provided
+                            task_metadata = tasks[0]["metadata"]
+                            state["current_task_id"] = task_id or task_metadata.get("parent_id", "")
+                            state["current_task_properties"] = properties
+                        else:
+                            state["next_action"] = "end"
+                    elif tool_name == "create_task":
+                        state["new_task_title"] = parameters.get("title", "")
+                        state["new_task_status"] = parameters.get("status", "Not Started")
+                        state["new_task_priority"] = parameters.get("priority", "Medium")
+                        state["new_task_due_date"] = parameters.get("due_date", "")
+                    elif tool_name == "send_notification":
+                        state["notification_message"] = parameters.get("message", "")
+                        state["notification_priority"] = parameters.get("priority", "normal")
                 else:
-                    state["current_task_id"] = ""
-                state["current_task_properties"] = {"Status": {"select": {"name": "In Progress"}}}
+                    logger.warning(f"Unknown tool: {tool_name}")
+                    state["next_action"] = "end"
+            else:
+                logger.warning("No JSON found in response, falling back to text parsing")
+                # Fallback to simple text parsing for backward compatibility
+                response_text_lower = response_text.lower()
+                
+                            # Default to search_tasks for daily planning, but check if we've already searched
+                if state["goal"] == "daily_planning":
+                    # Check if we've already searched recently to prevent loops
+                    recent_actions = state.get("recent_actions", [])
+                    if recent_actions and recent_actions[-1] == "search_tasks":
+                        # We just searched, so end the session to prevent loops
+                        state["next_action"] = "end"
+                        logger.info("Already searched recently, ending session to prevent loops")
+                    else:
+                        state["next_action"] = "search_tasks"
+                        state["current_query"] = "pending tasks"
+                        logger.info("Defaulting to search_tasks for daily planning")
+                elif "search" in response_text_lower or "find" in response_text_lower:
+                    state["next_action"] = "search_tasks"
+                    state["current_query"] = "pending tasks"
+                elif "update" in response_text_lower or "schedule" in response_text_lower:
+                    if tasks:
+                        state["next_action"] = "update_task"
+                        task_metadata = tasks[0]["metadata"]
+                        state["current_task_id"] = task_metadata.get("parent_id", "")
+                        state["current_task_properties"] = {"Status": {"select": {"name": "In Progress"}}}
+                    else:
+                        state["next_action"] = "end"
+                elif "create" in response_text_lower or "add" in response_text_lower:
+                    state["next_action"] = "create_task"
+                elif "notify" in response_text_lower or "send" in response_text_lower:
+                    state["next_action"] = "send_notification"
+                elif "routine" in response_text_lower:
+                    state["next_action"] = "get_routines"
+                else:
+                    state["next_action"] = "end"
+                    
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {e}")
+            logger.error(f"Response text: {response_text}")
+            # Don't set error, just fall back to text parsing
+            logger.info("Falling back to text parsing due to JSON decode error")
+            
+            # Fallback to simple text parsing
+            response_text_lower = response_text.lower()
+            
+            # Default to search_tasks for daily planning
+            if state["goal"] == "daily_planning":
+                state["next_action"] = "search_tasks"
+                state["current_query"] = "pending tasks"
+                logger.info("Defaulting to search_tasks for daily planning after JSON error")
+            elif "search" in response_text_lower or "find" in response_text_lower:
+                state["next_action"] = "search_tasks"
+                state["current_query"] = "pending tasks"
+            elif "update" in response_text_lower or "schedule" in response_text_lower:
+                if tasks:
+                    state["next_action"] = "update_task"
+                    task_metadata = tasks[0]["metadata"]
+                    state["current_task_id"] = task_metadata.get("parent_id", "")
+                    state["current_task_properties"] = {"Status": {"select": {"name": "In Progress"}}}
+                else:
+                    state["next_action"] = "end"
+            elif "create" in response_text_lower or "add" in response_text_lower:
+                state["next_action"] = "create_task"
+            elif "notify" in response_text_lower or "send" in response_text_lower:
+                state["next_action"] = "send_notification"
+            elif "routine" in response_text_lower:
+                state["next_action"] = "get_routines"
             else:
                 state["next_action"] = "end"
-        elif "create" in response_text_lower or "add" in response_text_lower:
-            state["next_action"] = "create_task"
-        elif "notify" in response_text_lower or "send" in response_text_lower:
-            state["next_action"] = "send_notification"
-        elif "routine" in response_text_lower:
-            state["next_action"] = "get_routines"
-        else:
-            state["next_action"] = "end"
         
         return state
     except Exception as e:
@@ -434,6 +695,15 @@ async def execute_action(state: AgentState) -> AgentState:
         return state
     
     logger.info(f"Action: Executing {next_action}")
+    
+    # Track recent actions for loop detection
+    if "recent_actions" not in state:
+        state["recent_actions"] = []
+    state["recent_actions"].append(next_action)
+    
+    # Keep only the last 5 actions to prevent memory bloat
+    if len(state["recent_actions"]) > 5:
+        state["recent_actions"] = state["recent_actions"][-5:]
     
     # Execute the action
     if next_action in TOOLS:
@@ -510,12 +780,9 @@ def save_state(state: AgentState) -> AgentState:
     return state
 
 
-# build_graph function removed - using simple loop implementation instead
-
-
 async def run_agent(goal: str = "daily_planning") -> Dict[str, Any]:
     """
-    Run the agent with the specified goal.
+    Run the agent with the specified goal using LangGraph.
     
     Args:
         goal: The goal for the agent to achieve
@@ -536,48 +803,29 @@ async def run_agent(goal: str = "daily_planning") -> Dict[str, Any]:
         error=None
     )
     
-    # Run the agent using a simple loop instead of LangGraph
-    # This avoids the LangGraph API compatibility issues
-    state = initial_state.copy()
-    
+    # Run the agent using LangGraph
     try:
-        # Step 1: Perception - Gather context
-        logger.info("Step 1: Perception - Gathering context")
-        state = perception(state)
+        logger.info("Starting LangGraph execution")
         
-        # Step 2: Reasoning - Determine next action
-        logger.info("Step 2: Reasoning - Determining next action")
-        state = reasoning(state)
+        # Run the graph with the initial state
+        # Use invoke() method for LangGraph with proper config
+        config = {
+            "configurable": {
+                "thread_id": f"agent_thread_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                "checkpoint_ns": "agent_checkpoints",
+                "checkpoint_id": f"agent_thread_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            }
+        }
+        final_state = graph.invoke(initial_state, config=config)
         
-        # Step 3: Action - Execute actions in a loop
-        max_iterations = 5  # Prevent infinite loops
-        iteration = 0
-        
-        while state.get("next_action") and state.get("next_action") != "end" and iteration < max_iterations:
-            logger.info(f"Step 3.{iteration + 1}: Action - Executing {state.get('next_action')}")
-            
-            # Execute the action
-            state = await execute_action(state)
-            
-            # Clear next_action to prevent infinite loop
-            state["next_action"] = None
-            
-            # Continue with reasoning for next action
-            state = reasoning(state)
-            iteration += 1
-        
-        # Step 4: Save state
-        logger.info("Step 4: Saving state")
-        state = save_state(state)
-        
-        logger.info("Agent run completed successfully")
+        logger.info("LangGraph execution completed successfully")
+        return final_state
         
     except Exception as e:
-        error = f"Error in agent execution: {str(e)}"
+        error = f"Error in LangGraph execution: {str(e)}"
         logger.error(error)
-        state["error"] = error
-    
-    return state
+        initial_state["error"] = error
+        return initial_state
 
 
 async def main():

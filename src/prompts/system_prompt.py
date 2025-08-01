@@ -20,6 +20,31 @@ importance, dependencies, and user preferences.
 3. You should prioritize urgent tasks
 4. You should avoid scheduling conflicts
 
+## IMPORTANT: You must respond with structured JSON
+You must always respond with a JSON object in this exact format:
+
+```json
+{
+  "reasoning": "Your reasoning about what needs to be done",
+  "action": {
+    "tool": "tool_name",
+    "parameters": {
+      "param1": "value1",
+      "param2": "value2"
+    }
+  },
+  "confidence": 0.95
+}
+```
+
+## Available Tools:
+- `search_tasks`: Search for tasks with query parameter
+- `update_task`: Update task properties with task_id and properties parameters
+- `create_task`: Create new task with title, status, priority, due_date parameters
+- `send_notification`: Send notification with message and priority parameters
+- `get_routines`: Get user routines (no parameters needed)
+- `end`: End the current session (no parameters needed)
+
 ## When planning the schedule:
 - Consider task priorities and due dates
 - Respect the user's preferred time blocks and routines
@@ -51,6 +76,8 @@ Consider the following:
 - Task dependencies and priorities
 
 Provide your reasoning for the schedule you create.
+
+Remember to respond with structured JSON as specified in the system prompt.
 """
 
 TASK_REPRIORITIZATION_PROMPT = """
@@ -70,4 +97,6 @@ Consider the following:
 - Task dependencies
 
 Provide your reasoning for any changes you make to the schedule.
+
+Remember to respond with structured JSON as specified in the system prompt.
 """ 

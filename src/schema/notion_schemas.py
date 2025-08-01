@@ -37,23 +37,18 @@ class NotionTaskSchema(BaseModel):
         use_enum_values = True
 
 
-class TimeBlockPreference(BaseModel):
-    """Schema for time block preferences in the routines database."""
-    name: str = Field(..., description="Name of the time block")
-    start_time: str = Field(..., description="Start time in 24-hour format (HH:MM)")
-    end_time: str = Field(..., description="End time in 24-hour format (HH:MM)")
-    days: List[str] = Field(..., description="Days of week this applies to")
-    priority: int = Field(1, description="Priority level (1-5, with 5 being highest)")
-    task_types: Optional[List[str]] = Field(None, description="Types of tasks suitable for this block")
-
-
 class RoutineSchema(BaseModel):
     """Schema for routines in Notion database."""
     id: str = Field(..., description="Notion page ID")
-    name: str = Field(..., description="Routine name")
-    time_blocks: List[TimeBlockPreference] = Field(..., description="Preferred time blocks")
-    recurring: bool = Field(False, description="Whether this is a recurring routine")
-    recurrence_pattern: Optional[str] = Field(None, description="Pattern for recurrence (e.g., 'Daily', 'Weekdays')")
+    task: str = Field(..., description="Routine task name")
+    duration: Optional[int] = Field(None, description="Duration in minutes")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    category: Optional[str] = Field(None, description="Category (Meetings, Focus Work, etc.)")
+    days: Optional[List[str]] = Field(None, description="Days this routine applies to")
+    status: Optional[List[str]] = Field(None, description="Status (Not Started, In Progress, Completed)")
+    energy_level: Optional[str] = Field(None, description="Energy level (High, Medium, Low)")
+    time: Optional[str] = Field(None, description="Scheduled time")
+    location: Optional[str] = Field(None, description="Location (Office, Home, etc.)")
     url: str = Field(..., description="URL to the routine in Notion")
 
 
@@ -118,30 +113,83 @@ class NotionDatabaseSchema:
     @staticmethod
     def routines_database_schema() -> Dict[str, Any]:
         """
-        Returns the schema for the routines & preferences database in Notion.
+        Returns the schema for the routines database in Notion.
+        Updated to match the actual database structure.
         """
         return {
-            "Name": {
+            "Task": {
                 "title": {}
             },
-            "Time Blocks": {
-                "rich_text": {}  # Stored as JSON string
+            "Duration": {
+                "number": {
+                    "format": "number"
+                }
             },
-            "Recurring": {
-                "checkbox": {}
+            "Notes": {
+                "rich_text": {}
             },
-            "Recurrence Pattern": {
+            "Category": {
                 "select": {
                     "options": [
-                        {"name": "Daily", "color": "blue"},
-                        {"name": "Weekdays", "color": "green"},
-                        {"name": "Weekends", "color": "yellow"},
-                        {"name": "Weekly", "color": "orange"},
-                        {"name": "Monthly", "color": "red"},
+                        {"name": "Meetings", "color": "blue"},
+                        {"name": "Focus Work", "color": "green"},
+                        {"name": "Admin", "color": "gray"},
+                        {"name": "Breaks", "color": "orange"},
+                        {"name": "Email", "color": "red"},
+                        {"name": "Planning", "color": "purple"},
+                        {"name": "Learning", "color": "yellow"},
+                        {"name": "1:1s", "color": "pink"},
                     ]
                 }
             },
-            "Description": {
-                "rich_text": {}
+            "Days": {
+                "multi_select": {
+                    "options": [
+                        {"name": "Monday", "color": "blue"},
+                        {"name": "Tuesday", "color": "green"},
+                        {"name": "Wednesday", "color": "yellow"},
+                        {"name": "Thursday", "color": "orange"},
+                        {"name": "Friday", "color": "red"},
+                        {"name": "Saturday", "color": "purple"},
+                        {"name": "Sunday", "color": "pink"},
+                        {"name": "Weekdays", "color": "gray"},
+                        {"name": "Weekends", "color": "brown"},
+                    ]
+                }
+            },
+            "Status": {
+                "multi_select": {
+                    "options": [
+                        {"name": "Not Started", "color": "red"},
+                        {"name": "In Progress", "color": "yellow"},
+                        {"name": "Completed", "color": "green"},
+                    ]
+                }
+            },
+            "Energy Level": {
+                "select": {
+                    "options": [
+                        {"name": "High", "color": "red"},
+                        {"name": "Medium", "color": "yellow"},
+                        {"name": "Low", "color": "blue"},
+                    ]
+                }
+            },
+            "Time": {
+                "date": {}
+            },
+            "Location": {
+                "select": {
+                    "options": [
+                        {"name": "Office", "color": "blue"},
+                        {"name": "Home", "color": "green"},
+                        {"name": "Meeting Room", "color": "purple"},
+                        {"name": "Client Site", "color": "orange"},
+                        {"name": "Coworking Space", "color": "yellow"},
+                        {"name": "Commuting", "color": "gray"},
+                        {"name": "Coffee Shop", "color": "brown"},
+                        {"name": "Outdoors", "color": "default"},
+                    ]
+                }
             }
         } 

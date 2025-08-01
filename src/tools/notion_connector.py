@@ -113,6 +113,14 @@ class NotionConnector:
             True if update was successful
         """
         try:
+            # Convert select format to status format for Status field
+            if "Status" in properties and "select" in properties["Status"]:
+                properties["Status"] = {
+                    "status": {
+                        "name": properties["Status"]["select"]["name"]
+                    }
+                }
+            
             await self.client.pages.update(page_id=task_id, properties=properties)
             return True
         except Exception as e:
@@ -186,34 +194,36 @@ class NotionConnector:
         for result in response.get("results", []):
             props = result.get("properties", {})
             
-            # Extract name
-            name = self._property_value_to_python("title", props.get("Name", {}).get("title"))
-            
-            # Parse time blocks from JSON string
-            time_blocks_text = self._property_value_to_python("rich_text", props.get("Time Blocks", {}).get("rich_text"))
-            time_blocks = []
-            if time_blocks_text:
-                try:
-                    time_blocks = json.loads(time_blocks_text)
-                except json.JSONDecodeError:
-                    time_blocks = []
+            # Extract task name (was "Name", now "Task")
+            task = self._property_value_to_python("title", props.get("Task", {}).get("title"))
             
             # Extract other properties
-            recurring = self._property_value_to_python("checkbox", props.get("Recurring", {}).get("checkbox"))
-            recurrence_pattern = self._property_value_to_python("select", props.get("Recurrence Pattern", {}).get("select"))
+            duration = self._property_value_to_python("number", props.get("Duration", {}).get("number"))
+            notes = self._property_value_to_python("rich_text", props.get("Notes", {}).get("rich_text"))
+            category = self._property_value_to_python("select", props.get("Category", {}).get("select"))
+            days = self._property_value_to_python("multi_select", props.get("Days", {}).get("multi_select"))
+            status = self._property_value_to_python("multi_select", props.get("Status", {}).get("multi_select"))
+            energy_level = self._property_value_to_python("select", props.get("Energy Level", {}).get("select"))
+            time = self._property_value_to_python("date", props.get("Time", {}).get("date"))
+            location = self._property_value_to_python("select", props.get("Location", {}).get("select"))
             
             # Skip routines with missing required fields
-            if not name:
-                print(f"Warning: Skipping routine {result['id']} - missing name")
+            if not task:
+                print(f"Warning: Skipping routine {result['id']} - missing task name")
                 continue
                 
             routine_data = {
                 "id": result["id"],
                 "url": result["url"],
-                "name": name,
-                "time_blocks": time_blocks,
-                "recurring": recurring,
-                "recurrence_pattern": recurrence_pattern
+                "task": task,
+                "duration": duration,
+                "notes": notes,
+                "category": category,
+                "days": days,
+                "status": status,
+                "energy_level": energy_level,
+                "time": time,
+                "location": location
             }
             
             try:

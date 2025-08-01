@@ -204,34 +204,61 @@ class RAGEngine:
         return {"tasks_processed": len(tasks), "chunks_created": len(ids)}
     
     async def _sync_routines(self, last_sync: Optional[str] = None):
-        """Sync routines from Notion to ChromaDB."""
-        # Get all routines from Notion
+        """
+        Sync routines from Notion to the vector database.
+        
+        Args:
+            last_sync: Optional timestamp of last sync to filter updates
+            
+        Returns:
+            Dictionary with sync results
+        """
         routines = await self.notion.get_routines()
         
-        # Currently Notion API for routines not tracking last_edited_time in schema; perform full refresh if last_sync is None
+        if not routines:
+            return {"routines_processed": 0, "chunks_created": 0}
         
-        # Prepare data for ChromaDB (with chunking)
-        ids: List[str] = []
-        documents: List[str] = []
-        metadatas: List[Dict[str, Any]] = []
-        parent_ids: List[str] = []
+        ids = []
+        documents = []
+        metadatas = []
+        parent_ids = []
         
         for routine in routines:
             parent_ids.append(routine.id)
             # Create the document text for embedding
-            doc_text = f"Routine: {routine.name}\n"
+            doc_text = f"Routine: {routine.task}\n"
             
-            # Add time blocks
-            if routine.time_blocks:
-                doc_text += "Time Blocks:\n"
-                for block in routine.time_blocks:
-                    doc_text += f"- {block.name}: {block.start_time} to {block.end_time} on {', '.join(block.days)}\n"
+            # Add duration
+            if routine.duration:
+                doc_text += f"Duration: {routine.duration} minutes\n"
             
-            # Add recurrence info
-            if routine.recurring:
-                doc_text += f"Recurring: Yes\n"
-                if routine.recurrence_pattern:
-                    doc_text += f"Recurrence Pattern: {routine.recurrence_pattern}\n"
+            # Add notes
+            if routine.notes:
+                doc_text += f"Notes: {routine.notes}\n"
+            
+            # Add category
+            if routine.category:
+                doc_text += f"Category: {routine.category}\n"
+            
+            # Add days
+            if routine.days:
+                doc_text += f"Days: {', '.join(routine.days)}\n"
+            
+            # Add status
+            if routine.status:
+                doc_text += f"Status: {', '.join(routine.status)}\n"
+            
+            # Add energy level
+            if routine.energy_level:
+                doc_text += f"Energy Level: {routine.energy_level}\n"
+            
+            # Add time
+            if routine.time:
+                doc_text += f"Time: {routine.time}\n"
+            
+            # Add location
+            if routine.location:
+                doc_text += f"Location: {routine.location}\n"
             
             chunks = self._chunk_text(doc_text)
             
@@ -242,10 +269,16 @@ class RAGEngine:
                 metadata = {
                     "id": chunk_id,
                     "parent_id": routine.id,
-                    "name": routine.name,
-                    "recurring": str(routine.recurring),
-                    "recurrence_pattern": routine.recurrence_pattern if routine.recurrence_pattern else "",
-                    "url": routine.url,
+                    "task": routine.task or "",
+                    "duration": routine.duration or "",
+                    "notes": routine.notes or "",
+                    "category": routine.category or "",
+                    "days": ", ".join(routine.days) if routine.days else "",
+                    "status": ", ".join(routine.status) if routine.status else "",
+                    "energy_level": routine.energy_level or "",
+                    "time": routine.time or "",
+                    "location": routine.location or "",
+                    "url": routine.url or "",
                     "type": "routine",
                     "chunk_index": idx
                 }
@@ -294,6 +327,11 @@ class RAGEngine:
         Returns:
             List of task dictionaries matching the query
         """
+        # Validate query is not empty
+        if not query or not query.strip():
+            logger.warning("Empty query provided to search_tasks, using default query")
+            query = "pending tasks"
+        
         results = self.tasks_collection.query(
             query_texts=[query],
             n_results=n_results
