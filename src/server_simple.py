@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
+from fastapi import Response
 from pydantic import BaseModel
 from src.config import get_settings
 from src.tools.notion_connector import NotionConnector
 from src.db.supabase_connector import SupabaseConnector
 from src.tools.rag_engine import RAGEngine
+from src.monitoring.metrics_collector import get_metrics_collector
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from contextlib import asynccontextmanager
@@ -298,6 +300,17 @@ async def get_sync_metrics() -> Dict[str, Any]:
             "is_running": scheduler.running
         }
     }
+
+@app.get("/metrics")
+async def get_prometheus_metrics() -> Response:
+    """Export metrics in Prometheus format for Grafana Cloud."""
+    metrics_collector = get_metrics_collector()
+    prometheus_data = metrics_collector.export_prometheus()
+    
+    return Response(
+        content=prometheus_data,
+        media_type="text/plain"
+    )
 
 @app.post("/tasks")
 async def create_task(task: TaskIn) -> dict[str, str]:

@@ -18,10 +18,25 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = Field(..., env="SUPABASE_URL")
     SUPABASE_KEY: str = Field(..., env="SUPABASE_KEY")
 
-    # LangSmith (optional but recommended for tracing)
+    # LangSmith
     LANGCHAIN_API_KEY: str | None = Field(None, env="LANGCHAIN_API_KEY")
     LANGCHAIN_TRACING_V2: bool = Field(False, env="LANGCHAIN_TRACING_V2")
     LANGCHAIN_PROJECT: str = Field("Nova-Agent", env="LANGCHAIN_PROJECT")
+    
+    # Monitoring & Analytics
+    LANGSMITH_API_KEY: str | None = Field(None, env="LANGSMITH_API_KEY")
+    LANGSMITH_PROJECT: str = Field("notion-agent", env="LANGSMITH_PROJECT")
+    LANGSMITH_TRACING_V2: bool = Field(True, env="LANGSMITH_TRACING_V2")
+    
+    # Cost Management
+    DAILY_COST_LIMIT: float = Field(1.00, env="DAILY_COST_LIMIT")
+    MONTHLY_COST_LIMIT: float = Field(25.00, env="MONTHLY_COST_LIMIT")
+    OPERATION_COST_THRESHOLD: float = Field(0.01, env="OPERATION_COST_THRESHOLD")
+    
+    # Performance Monitoring
+    ENABLE_PERFORMANCE_MONITORING: bool = Field(True, env="ENABLE_PERFORMANCE_MONITORING")
+    ENABLE_COST_OPTIMIZATION: bool = Field(True, env="ENABLE_COST_OPTIMIZATION")
+    ENABLE_FEEDBACK_COLLECTION: bool = Field(True, env="ENABLE_FEEDBACK_COLLECTION")
 
     # ── Local options / misc ─────────────────────────────────────────────────
     LOG_LEVEL: str = Field("INFO", env="LOG_LEVEL")

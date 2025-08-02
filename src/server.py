@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 import traceback
 from dataclasses import dataclass, asdict
+from fastapi import Response
+from src.monitoring.metrics_collector import get_metrics_collector
 import json
 
 # Configure comprehensive logging
@@ -368,3 +370,14 @@ async def dashboard_overview() -> Dict[str, Any]:
             "error_rate": (health_data["total_errors"] / max(1, len(recent_history))) * 100
         }
     } 
+
+@app.get("/metrics")
+async def get_prometheus_metrics():
+    """Export metrics in Prometheus format."""
+    metrics_collector = get_metrics_collector()
+    prometheus_data = metrics_collector.export_prometheus()
+    
+    return Response(
+        content=prometheus_data,
+        media_type="text/plain"
+    )

@@ -41,12 +41,6 @@ logger = logging.getLogger("notion_agent")
 # Load environment variables
 load_dotenv()
 
-# ──────────────────────────────────────────────────────────────────────────────
-# LangSmith tracing (observation/monitoring)
-# If the user sets LANGCHAIN_TRACING_V2=true and provides LANGCHAIN_API_KEY
-# the agent will automatically send traces to LangSmith for every execution.
-# This block validates the credentials once at start-up and logs status.
-
 if os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true":
     try:
         _ls_client = LangSmithClient()
@@ -106,6 +100,20 @@ def search_tasks_tool(state: AgentState) -> AgentState:
         # Update state with results
         state["search_results"] = {"success": True, "tasks": tasks}
         
+        # Check if tasks have proper IDs
+        tasks_with_ids = []
+        tasks_without_ids = []
+        
+        for task in tasks:
+            task_id = task.get("id", "")
+            if task_id and task_id.startswith(("21", "22", "23", "24", "25", "26", "27", "28", "29", "30")):
+                tasks_with_ids.append(task)
+            else:
+                tasks_without_ids.append(task)
+        
+        # Log the findings
+        logger.info(f"Found {len(tasks)} tasks: {len(tasks_with_ids)} with IDs, {len(tasks_without_ids)} without IDs")
+        
         # If we have a pending update, try to find the matching task
         if state.get("pending_update"):
             pending_update = state["pending_update"]
@@ -128,6 +136,11 @@ def search_tasks_tool(state: AgentState) -> AgentState:
                 state.pop("pending_update", None)
                 state["next_action"] = "end"
                 logger.warning(f"Task '{original_task_id}' not found in search results")
+        
+        # If we found tasks but they don't have proper IDs, this might indicate a configuration issue
+        if tasks_without_ids and not tasks_with_ids:
+            logger.warning("Found tasks but none have proper Notion page IDs. This may indicate a database configuration issue.")
+            state["search_warning"] = "Tasks found but missing proper IDs - check Notion database configuration"
         
         return state
     except Exception as e:
@@ -352,20 +365,27 @@ def should_continue(state: AgentState) -> Literal["continue", "end"]:
     loop_count = state.get("loop_count", 0)
     state["loop_count"] = loop_count + 1
     
-    # Prevent infinite loops (max 5 iterations to be safe)
-    if loop_count >= 5:
+    # Prevent infinite loops (max 3 iterations to be safe - reduced from 5)
+    if loop_count >= 3:
         logger.warning("Agent ending due to maximum loop count reached")
         return "end"
     
-    # Detect if we're stuck in a search loop
-    if loop_count >= 3:
+    # Detect if we're stuck in a search loop (reduced threshold)
+    if loop_count >= 2:
         # Check if we've been doing the same action repeatedly
         recent_actions = state.get("recent_actions", [])
-        if len(recent_actions) >= 3:
-            # Check if the last 3 actions are all search_tasks
-            if all(action == "search_tasks" for action in recent_actions[-3:]):
+        if len(recent_actions) >= 2:
+            # Check if the last 2 actions are all search_tasks
+            if all(action == "search_tasks" for action in recent_actions[-2:]):
                 logger.warning("Agent ending due to search loop detection")
                 return "end"
+    
+    # Check if we've been searching too much
+    recent_actions = state.get("recent_actions", [])
+    search_count = sum(1 for action in recent_actions if action == "search_tasks")
+    if search_count >= 3:
+        logger.warning("Agent ending due to excessive search operations")
+        return "end"
     
     if error:
         logger.error(f"Agent ending due to error: {error}")
@@ -410,6 +430,10 @@ def build_graph() -> StateGraph:
 
 # Create the compiled graph
 graph = build_graph()
+
+def create_agent():
+    """Create the agent graph for LangGraph Studio."""
+    return graph
 
 # Core agent functions
 def perception(state: AgentState) -> AgentState:
@@ -588,10 +612,26 @@ def reasoning(state: AgentState) -> AgentState:
                             }
                             logger.info(f"Task ID '{task_id}' appears to be a title, searching for it first")
                         elif tasks:
-                            # Use the first task's parent_id as default if no task_id provided
-                            task_metadata = tasks[0]["metadata"]
-                            state["current_task_id"] = task_id or task_metadata.get("parent_id", "")
-                            state["current_task_properties"] = properties
+                            # Try to find a task with a proper ID
+                            task_with_id = None
+                            for task in tasks:
+                                task_metadata = task.get("metadata", {})
+                                task_parent_id = task_metadata.get("parent_id", "")
+                                if task_parent_id and task_parent_id.startswith(("21", "22", "23", "24", "25", "26", "27", "28", "29", "30")):
+                                    task_with_id = task
+                                    break
+                            
+                            if task_with_id:
+                                task_metadata = task_with_id["metadata"]
+                                state["current_task_id"] = task_id or task_metadata.get("parent_id", "")
+                                state["current_task_properties"] = properties
+                                logger.info(f"Using task ID: {state['current_task_id']}")
+                            else:
+                                # No task with proper ID found, send notification and end
+                                state["next_action"] = "send_notification"
+                                state["notification_message"] = "Daily planning completed: Found tasks but unable to update due to missing task IDs. Please check your Notion database configuration."
+                                state["notification_priority"] = "warning"
+                                logger.warning("No task with proper ID found, sending notification and ending")
                         else:
                             state["next_action"] = "end"
                     elif tool_name == "create_task":
@@ -614,7 +654,32 @@ def reasoning(state: AgentState) -> AgentState:
                 if state["goal"] == "daily_planning":
                     # Check if we've already searched recently to prevent loops
                     recent_actions = state.get("recent_actions", [])
-                    if recent_actions and recent_actions[-1] == "search_tasks":
+                    search_count = sum(1 for action in recent_actions if action == "search_tasks")
+                    
+                    if search_count >= 2:
+                        # We've searched enough, check if we have tasks with proper IDs
+                        tasks = state.get('context', {}).get('tasks', [])
+                        tasks_with_ids = []
+                        
+                        for task in tasks:
+                            task_id = task.get("id", "")
+                            if task_id and task_id.startswith(("21", "22", "23", "24", "25", "26", "27", "28", "29", "30")):
+                                tasks_with_ids.append(task)
+                        
+                        if tasks_with_ids:
+                            # We have tasks with IDs, proceed with update
+                            state["next_action"] = "update_task"
+                            task_metadata = tasks_with_ids[0].get("metadata", {})
+                            state["current_task_id"] = task_metadata.get("parent_id", "")
+                            state["current_task_properties"] = {"scheduled_time": "2025-08-03 10:00"}
+                            logger.info("Found tasks with IDs, proceeding with update")
+                        else:
+                            # No tasks with proper IDs, send notification and end
+                            state["next_action"] = "send_notification"
+                            state["notification_message"] = "Daily planning completed: Found tasks but unable to schedule due to missing task IDs. Please check your Notion database configuration."
+                            state["notification_priority"] = "warning"
+                            logger.info("Search limit reached, no tasks with proper IDs, sending notification and ending")
+                    elif recent_actions and recent_actions[-1] == "search_tasks":
                         # We just searched, so end the session to prevent loops
                         state["next_action"] = "end"
                         logger.info("Already searched recently, ending session to prevent loops")
@@ -808,13 +873,14 @@ async def run_agent(goal: str = "daily_planning") -> Dict[str, Any]:
         logger.info("Starting LangGraph execution")
         
         # Run the graph with the initial state
-        # Use invoke() method for LangGraph with proper config
+        # Use invoke() method for LangGraph with proper config and reduced recursion limit
         config = {
             "configurable": {
                 "thread_id": f"agent_thread_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 "checkpoint_ns": "agent_checkpoints",
                 "checkpoint_id": f"agent_thread_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            }
+            },
+            "recursion_limit": 50  # Increased to allow more steps for complex tasks or to hit custom termination conditions
         }
         final_state = graph.invoke(initial_state, config=config)
         

@@ -45,6 +45,20 @@ You must always respond with a JSON object in this exact format:
 - `get_routines`: Get user routines (no parameters needed)
 - `end`: End the current session (no parameters needed)
 
+## Example of a tool call:
+```json
+{
+  "reasoning": "I need to find pending tasks to start daily planning.",
+  "action": {
+    "tool": "search_tasks",
+    "parameters": {
+      "query": "pending tasks"
+    }
+  },
+  "confidence": 0.98
+}
+```
+
 ## When planning the schedule:
 - Consider task priorities and due dates
 - Respect the user's preferred time blocks and routines

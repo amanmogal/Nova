@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "./requirements.txt"
+  ],
+  "graphs": {
+    "notion_agent": "src/agent.py:create_agent"
+  },
+  "env": "./.env"
+}
