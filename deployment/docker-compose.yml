@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: ../src
+      dockerfile: ../deployment/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+    env_file:
+      - ../.env
+    volumes:
+      - ../src:/app/src
+      - ../data:/app/data
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - notion-agent-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../deployment/Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - ../frontend/.env
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - notion-agent-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: notion_agent
+      POSTGRES_USER: notion_agent
+      POSTGRES_PASSWORD: notion_agent_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - notion-agent-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - notion-agent-network
+
+  # Grafana Agent (for metrics)
+  grafana-agent:
+    image: grafana/agent:latest
+    ports:
+      - "12345:12345"
+    volumes:
+      - ../agent-config.yaml:/etc/grafana-agent/config.yaml
+    environment:
+      - GRAFANA_USERNAME=${GRAFANA_USERNAME}
+      - GRAFANA_API_KEY=${GRAFANA_API_KEY}
+      - GRAFANA_PROMETHEUS_URL=${GRAFANA_PROMETHEUS_URL}
+    depends_on:
+      - backend
+    networks:
+      - notion-agent-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  notion-agent-network:
+    driver: bridge 

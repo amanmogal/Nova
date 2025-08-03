@@ -17,16 +17,14 @@ class Settings(BaseSettings):
     # Supabase
     SUPABASE_URL: str = Field(..., env="SUPABASE_URL")
     SUPABASE_KEY: str = Field(..., env="SUPABASE_KEY")
-
-    # LangSmith
-    LANGCHAIN_API_KEY: str | None = Field(None, env="LANGCHAIN_API_KEY")
-    LANGCHAIN_TRACING_V2: bool = Field(False, env="LANGCHAIN_TRACING_V2")
-    LANGCHAIN_PROJECT: str = Field("Nova-Agent", env="LANGCHAIN_PROJECT")
     
     # Monitoring & Analytics
     LANGSMITH_API_KEY: str | None = Field(None, env="LANGSMITH_API_KEY")
     LANGSMITH_PROJECT: str = Field("notion-agent", env="LANGSMITH_PROJECT")
     LANGSMITH_TRACING_V2: bool = Field(True, env="LANGSMITH_TRACING_V2")
+    GRAFANA_USERNAME: str = Field(..., env="GRAFANA_USERNAME")
+    GRAFANA_API_KEY: str = Field(..., env="GRAFANA_API_KEY")
+    GRAFANA_PROMETHEUS_URL: str = Field(..., env="GRAFANA_PROMETHEUS_URL")  
     
     # Cost Management
     DAILY_COST_LIMIT: float = Field(1.00, env="DAILY_COST_LIMIT")
@@ -70,7 +68,7 @@ class Settings(BaseSettings):
         extra = "ignore"  # Ignore extra fields instead of raising errors
 
     # Cast truthy strings → booleans
-    @validator("LANGCHAIN_TRACING_V2", pre=True)
+    @validator("LANGSMITH_TRACING_V2", pre=True)
     def _cast_bool(cls, v):  # noqa: N805
         if isinstance(v, bool):
             return v
