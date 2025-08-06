@@ -12,6 +12,12 @@ chromadb==1.0.9
 
 # Database
 supabase==2.17.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Authentication & Security
+PyJWT>=2.8.0
+python-multipart>=0.0.6
 
 # Utilities
 python-dotenv>=1.0.1
@@ -35,3 +41,7 @@ markupsafe>=2.0,<2.1.4
 scikit-learn
 matplotlib
 numpy
+
+# Multi-tenant specific
+contextvars
+asyncio

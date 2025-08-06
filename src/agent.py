@@ -549,7 +549,7 @@ def reasoning(state: AgentState) -> AgentState:
             logger.error(f"LLM response has no candidates. Prompt feedback: {response.prompt_feedback}")
             state["error"] = "LLM response has no candidates."
             return state
-
+        
         # Update messages
         if not state.get("messages"):
             state["messages"] = []
@@ -787,7 +787,7 @@ async def execute_action(state: AgentState) -> AgentState:
             # Update state with tool results
             state.update(updated_state)
             
-        except Exception as e:
+            except Exception as e:
             error = f"Error executing tool {next_action}: {str(e)}"
             logger.error(error)
             
