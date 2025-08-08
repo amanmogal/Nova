@@ -21,6 +21,7 @@ from src.middleware.user_isolation import (
     check_trial_status, create_jwt_token
 )
 from src.config import get_settings
+from src.tools.notion_connector import NotionConnector
 
 # Load settings
 settings = get_settings()
@@ -65,6 +66,11 @@ class NotificationRequest(BaseModel):
     subject: str
     message: str
     priority: str = "normal"
+
+
+class NotionDatabasesRequest(BaseModel):
+    query: Optional[str] = None
+    limit: int = 20
 
 
 class UsageSummaryResponse(BaseModel):
@@ -178,6 +184,23 @@ async def register_user(request: UserRegistrationRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+# Notion discovery endpoints (for workspace/database selection)
+@app.post("/notion/databases")
+@check_user_quota("list_databases")
+async def list_notion_databases(
+    request: NotionDatabasesRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """List databases the current user's integration can access."""
+    try:
+        multi_tenant_db.set_user_context(current_user["id"])
+        creds = multi_tenant_db.get_user_credentials() or {}
+        api_key = creds.get("notion_access_token")
+        notion = NotionConnector(api_key=api_key)
+        databases = await notion.list_databases(query=request.query, limit=request.limit)
+        return {"databases": databases}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list databases: {str(e)}")
 
 
 @app.post("/auth/login")

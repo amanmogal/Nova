@@ -45,5 +45,8 @@
     "automation"
   ],
   "author": "Notion Agent Team",
-  "license": "MIT"
-} 
+  "license": "MIT",
+  "dependencies": {
+    "lucide-react": "^0.537.0"
+  }
+}

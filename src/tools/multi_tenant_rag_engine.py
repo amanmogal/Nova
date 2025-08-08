@@ -35,7 +35,11 @@ class MultiTenantRAGEngine:
     def __init__(self, user_id: str):
         """Initialize the RAG engine for a specific user."""
         self.user_id = user_id
-        self.notion = NotionConnector()
+        # Load per-user Notion credentials
+        multi_tenant_db.set_user_context(user_id)
+        creds = multi_tenant_db.get_user_credentials() or {}
+        api_key_override = creds.get("notion_access_token")
+        self.notion = NotionConnector(api_key=api_key_override)
 
         class GoogleEmbeddingFunction(chromadb.EmbeddingFunction):
             def __call__(self, input: List[str]) -> List[List[float]]:
@@ -119,9 +123,9 @@ class MultiTenantRAGEngine:
             
             # Update Notion connector with user's tokens
             if user_config.notion_tasks_db_id:
-                self.notion.tasks_database_id = user_config.notion_tasks_db_id
+                self.notion.tasks_db_id = user_config.notion_tasks_db_id
             if user_config.notion_routines_db_id:
-                self.notion.routines_database_id = user_config.notion_routines_db_id
+                self.notion.routines_db_id = user_config.notion_routines_db_id
             
             # Get last sync time
             last_sync = self.sync_state.get("last_sync")

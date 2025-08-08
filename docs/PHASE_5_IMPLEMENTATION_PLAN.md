@@ -154,17 +154,17 @@ usage_logs (
 
 ### **Week 3: User Dashboard**
 **Milestone 1.3: Web Interface**
-- [ ] Create user dashboard with Next.js
-- [ ] Implement Notion workspace connection flow
-- [ ] Add database selection interface
-- [ ] Create user preferences and settings pages
-- [ ] Build agent activity monitoring
+- [x] Create user dashboard with Next.js
+- [x] Implement Notion workspace connection flow (NextAuth + backend registration)
+- [x] Add database selection interface (Settings → list databases, save selection)
+- [x] Create user preferences and settings pages (DB selection, planning time, sync interval, cost/perf toggles)
+- [x] Build agent activity monitoring (usage summary + logs pages)
 
 **Deliverables:**
 - Complete user dashboard
-- Workspace connection wizard
-- Settings and preferences pages
-- Real-time activity monitoring
+- Workspace connection wizard (OAuth completed; guided wizard TBD)
+- Settings and preferences pages (basic DB selector complete)
+- Real-time activity monitoring (usage summary/logs implemented)
 
 ### **Week 4: Onboarding & Configuration**
 **Milestone 1.4: User Onboarding**

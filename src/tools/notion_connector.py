@@ -21,18 +21,20 @@ class NotionConnector:
     Provides methods for interacting with Notion databases and pages.
     """
     
-    def __init__(self):
-        """Initialize the Notion API client."""
-        self.api_key = os.getenv("NOTION_API_KEY")
+    def __init__(self, api_key: Optional[str] = None):
+        """Initialize the Notion API client.
+
+        If api_key is provided, use it; otherwise fall back to env var.
+        Database ids are optional now; settable later per user config.
+        """
+        self.api_key = api_key or os.getenv("NOTION_API_KEY")
         if not self.api_key:
             raise ValueError("NOTION_API_KEY environment variable not set")
         
         self.client = AsyncClient(auth=self.api_key)
+        # IDs may be provided later from user config
         self.tasks_db_id = os.getenv("NOTION_TASKS_DATABASE_ID")
         self.routines_db_id = os.getenv("NOTION_ROUTINES_DATABASE_ID")
-        
-        if not self.tasks_db_id or not self.routines_db_id:
-            raise ValueError("Notion database IDs not set in environment variables")
     
     def _property_value_to_python(self, property_type: str, property_value: Any) -> Any:
         """Convert Notion property values to Python objects."""
@@ -180,6 +182,28 @@ class NotionConnector:
         except Exception as e:
             print(f"Error creating task: {str(e)}")
             return None
+
+    async def list_databases(self, query: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
+        """List databases available to the Notion integration, optionally filtered by query."""
+        try:
+            # Notion search endpoint lists pages and databases; filter for database object
+            payload: Dict[str, Any] = {"page_size": min(max(limit, 1), 100)}
+            if query:
+                payload["query"] = query
+            results = await self.client.search(**payload)
+            databases: List[Dict[str, Any]] = []
+            for item in results.get("results", []):
+                if item.get("object") == "database":
+                    databases.append({
+                        "id": item.get("id"),
+                        "title": (item.get("title") or [{}])[0].get("plain_text", "Untitled"),
+                        "url": item.get("url"),
+                        "last_edited_time": item.get("last_edited_time"),
+                    })
+            return databases
+        except Exception as e:
+            print(f"Error listing databases: {str(e)}")
+            return []
 
     async def get_routines(self) -> List[RoutineSchema]:
         """

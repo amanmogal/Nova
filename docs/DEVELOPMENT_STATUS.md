@@ -159,11 +159,11 @@ Transform the single-user Notion Agent into a multi-tenant SaaS platform that en
 - [ ] Update all existing endpoints for multi-tenancy
 
 #### Week 3: User Dashboard
-- [ ] Create user dashboard with Next.js
-- [ ] Implement Notion workspace connection flow
-- [ ] Add database selection interface
-- [ ] Create user preferences and settings pages
-- [ ] Build agent activity monitoring
+- [x] Create user dashboard with Next.js
+- [x] Implement Notion workspace connection flow (NextAuth + backend registration token)
+- [x] Add database selection interface (Settings page: list databases, save to config)
+- [x] Create user preferences and settings pages (DB selection, planning time, sync interval, cost/perf toggles)
+- [x] Build agent activity monitoring (usage summary card + /usage logs table)
 
 #### Week 4: Onboarding & Configuration
 - [ ] Create guided setup wizard

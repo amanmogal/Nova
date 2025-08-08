@@ -77,7 +77,6 @@ class MultiTenantConnector:
         """Clear the current user context."""
         current_user_id.set(None)
     
-    @require_user_context
     def create_user(self, user_data: UserCreate) -> Optional[UserResponse]:
         """Create a new user with 4-day trial."""
         try:
@@ -109,6 +108,31 @@ class MultiTenantConnector:
             return None
         except Exception as e:
             print(f"Error creating user: {str(e)}")
+            return None
+
+    def get_user_credentials(self) -> Optional[Dict[str, Optional[str]]]:
+        """Return current user's Notion credentials (access token and workspace info)."""
+        try:
+            user_id = self.get_user_context()
+            if not user_id:
+                return None
+            response = (
+                self.supabase_client
+                .table("users")
+                .select("notion_access_token, notion_workspace_id, notion_workspace_name")
+                .eq("id", user_id)
+                .limit(1)
+                .execute()
+            )
+            if response.data:
+                row = response.data[0]
+                return {
+                    "notion_access_token": row.get("notion_access_token"),
+                    "notion_workspace_id": row.get("notion_workspace_id"),
+                    "notion_workspace_name": row.get("notion_workspace_name"),
+                }
+            return None
+        except Exception:
             return None
     
     @require_user_context
@@ -343,7 +367,7 @@ class MultiTenantConnector:
                 "total_cost_usd": f"{total_cost:.2f}",
                 "operation_counts": operation_counts,
                 "subscription_tier": user.subscription_tier,
-                "monthly_requests": user.monthly_requests,
+                "monthly_requests": sum(operation_counts.values()),
                 "trial_ends_at": user.trial_ends_at
             }
         except Exception as e:

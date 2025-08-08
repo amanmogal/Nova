@@ -1,5 +1,5 @@
 import { NextAuthOptions } from "next-auth";
-import { NotionProvider } from "next-auth/providers/notion";
+import { NotionProvider } from "@/lib/providers/notion";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,20 +16,21 @@ export const authOptions: NextAuthOptions = {
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
       }
-      
+
       if (profile) {
-        token.notionWorkspaceId = profile.workspace_id;
-        token.notionWorkspaceName = profile.workspace_name;
+        const p: any = profile as any;
+        token.notionWorkspaceId = p?.workspace_id ?? p?.bot?.workspace_id ?? undefined;
+        token.notionWorkspaceName = p?.workspace_name ?? undefined
       }
-      
+
       return token;
     },
     async session({ session, token }) {
       // Send properties to the client, like an access_token and user id from a provider.
-      session.accessToken = token.accessToken;
-      session.notionWorkspaceId = token.notionWorkspaceId;
-      session.notionWorkspaceName = token.notionWorkspaceName;
-      
+      session.accessToken = (token.accessToken as string | undefined);
+      session.notionWorkspaceId = (token.notionWorkspaceId as string | undefined);
+      session.notionWorkspaceName = (token.notionWorkspaceName as string | undefined);
+
       return session;
     },
   },
@@ -50,7 +51,7 @@ declare module "next-auth" {
     notionWorkspaceId?: string;
     notionWorkspaceName?: string;
   }
-  
+
   interface JWT {
     accessToken?: string;
     refreshToken?: string;
