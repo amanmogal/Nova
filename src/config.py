@@ -22,9 +22,10 @@ class Settings(BaseSettings):
     LANGSMITH_API_KEY: str | None = Field(None, env="LANGSMITH_API_KEY")
     LANGSMITH_PROJECT: str = Field("notion-agent", env="LANGSMITH_PROJECT")
     LANGSMITH_TRACING_V2: bool = Field(True, env="LANGSMITH_TRACING_V2")
-    GRAFANA_USERNAME: str = Field(..., env="GRAFANA_USERNAME")
-    GRAFANA_API_KEY: str = Field(..., env="GRAFANA_API_KEY")
-    GRAFANA_PROMETHEUS_URL: str = Field(..., env="GRAFANA_PROMETHEUS_URL")  
+    # Optional in local/dev
+    GRAFANA_USERNAME: str | None = Field(None, env="GRAFANA_USERNAME")
+    GRAFANA_API_KEY: str | None = Field(None, env="GRAFANA_API_KEY")
+    GRAFANA_PROMETHEUS_URL: str | None = Field(None, env="GRAFANA_PROMETHEUS_URL")  
     
     # Cost Management
     DAILY_COST_LIMIT: float = Field(1.00, env="DAILY_COST_LIMIT")
@@ -40,8 +41,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field("INFO", env="LOG_LEVEL")
 
     # Notion Specific
-    notion_tasks_database_id: str = Field(..., env="NOTION_TASKS_DATABASE_ID")
-    notion_routines_database_id: str = Field(..., env="NOTION_ROUTINES_DATABASE_ID")
+    notion_tasks_database_id: str | None = Field(None, env="NOTION_TASKS_DATABASE_ID")
+    notion_routines_database_id: str | None = Field(None, env="NOTION_ROUTINES_DATABASE_ID")
 
     # Gemini Model
     gemini_model: str = Field("gemini-2.5-flash", env="GEMINI_MODEL")
@@ -50,8 +51,8 @@ class Settings(BaseSettings):
     chroma_db_path: str = Field("./data/chroma", env="CHROMA_DB_PATH")
 
     # Email
-    email_sender: str = Field(..., env="EMAIL_SENDER")
-    email_api_key: str = Field(..., env="EMAIL_API_KEY")
+    email_sender: str | None = Field(None, env="EMAIL_SENDER")
+    email_api_key: str | None = Field(None, env="EMAIL_API_KEY")
 
     # Scheduling
     daily_planning_time: str = Field("08:00", env="DAILY_PLANNING_TIME")

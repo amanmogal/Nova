@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getUserConfig, listNotionDatabases, updateUserConfig, triggerRagSync } from "@/lib/api";
+import toast from "react-hot-toast";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -29,12 +30,16 @@ export default function OnboardingPage() {
   }, [config, router]);
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<unknown> => {
       const res = await updateUserConfig({ notion_tasks_db_id: tasksDb || null, notion_routines_db_id: routinesDb || null });
       try { await triggerRagSync(); } catch {}
       return res;
     },
-    onSuccess: () => router.push("/dashboard"),
+    onSuccess: () => { toast.success("Setup complete! Sync started"); router.push("/dashboard"); },
+    onError: (e: unknown) => {
+      const message = e instanceof Error ? e.message : String(e);
+      toast.error(`Failed to complete setup: ${message}`);
+    },
   });
 
   const databases = (dbs?.databases || []) as Array<{ id: string; title: string }>;

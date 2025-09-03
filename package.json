@@ -47,6 +47,7 @@
   "author": "Notion Agent Team",
   "license": "MIT",
   "dependencies": {
-    "lucide-react": "^0.537.0"
+    "lucide-react": "^0.537.0",
+    "react-hot-toast": "^2.6.0"
   }
 }

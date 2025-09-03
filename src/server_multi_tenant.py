@@ -22,6 +22,7 @@ from src.middleware.user_isolation import (
 )
 from src.config import get_settings
 from src.tools.notion_connector import NotionConnector
+import os
 
 # Load settings
 settings = get_settings()
@@ -124,6 +125,18 @@ async def lifespan(app: FastAPI):
     # Shutdown
     print("Shutting down multi-tenant Notion Agent server...")
 
+
+# Initialize Sentry (backend) if DSN provided
+_sentry_dsn = os.getenv("SENTRY_DSN")
+if _sentry_dsn:
+    try:
+        # Lazy import so missing dependency doesn't crash server
+        import sentry_sdk  # type: ignore
+        from sentry_sdk.integrations.asgi import SentryAsgiIntegration  # type: ignore
+        sentry_sdk.init(dsn=_sentry_dsn, traces_sample_rate=1.0, integrations=[SentryAsgiIntegration()])
+    except Exception:
+        # Sentry not available or failed to init; continue without it
+        pass
 
 # Create FastAPI app
 app = FastAPI(

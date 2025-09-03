@@ -64,7 +64,7 @@ export default function UsagePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(logs || []).map((row: any) => (
+                    {(logs || []).map((row: { id: string; created_at: string; operation_type: string; tokens_used: number; cost_usd: string; success: boolean }) => (
                       <tr key={row.id} className="border-t">
                         <td className="px-3 py-2">{new Date(row.created_at).toLocaleString()}</td>
                         <td className="px-3 py-2">{row.operation_type}</td>

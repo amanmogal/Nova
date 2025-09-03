@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { listNotionDatabases, getUserConfig, updateUserConfig, triggerRagSync } from "@/lib/api";
+import toast from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -48,13 +49,18 @@ export default function SettingsPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: Record<string, unknown>) => {
       const res = await updateUserConfig(payload);
       try { await triggerRagSync(); } catch {}
       return res;
     },
     onSuccess: () => {
+      toast.success("Settings saved and sync started");
       router.push("/dashboard");
+    },
+    onError: (e: unknown) => {
+      const message = e instanceof Error ? e.message : String(e);
+      toast.error(`Failed to save settings: ${message}`);
     },
   });
 

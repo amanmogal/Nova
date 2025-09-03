@@ -29,8 +29,8 @@ export async function ensureBackendRegistration(): Promise<string | null> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: session.user.email,
-        notion_access_token: (session as any).accessToken,
-        notion_workspace_id: (session as any).notionWorkspaceId,
+        notion_access_token: (session as unknown as { accessToken?: string })?.accessToken,
+        notion_workspace_id: (session as unknown as { notionWorkspaceId?: string })?.notionWorkspaceId,
       }),
     });
     if (!res.ok) {

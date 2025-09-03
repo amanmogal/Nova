@@ -4,8 +4,8 @@ import { NotionProvider } from "@/lib/providers/notion";
 export const authOptions: NextAuthOptions = {
   providers: [
     NotionProvider({
-      clientId: process.env.NOTION_CLIENT_ID!,
-      clientSecret: process.env.NOTION_CLIENT_SECRET!,
+      clientId: process.env.NOTION_CLIENT_ID || "",
+      clientSecret: process.env.NOTION_CLIENT_SECRET || "",
     }),
   ],
   callbacks: {
@@ -18,9 +18,9 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (profile) {
-        const p: any = profile as any;
+        const p = profile as { workspace_id?: string; workspace_name?: string; bot?: { workspace_id?: string } };
         token.notionWorkspaceId = p?.workspace_id ?? p?.bot?.workspace_id ?? undefined;
-        token.notionWorkspaceName = p?.workspace_name ?? undefined
+        token.notionWorkspaceName = p?.workspace_name ?? undefined;
       }
 
       return token;

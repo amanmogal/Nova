@@ -22,7 +22,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  if (status === "unauthenticated") return null as any;
+  if (status === "unauthenticated") return null;
 
   return <>{children}</>;
 }

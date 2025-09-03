@@ -1,46 +1,23 @@
-# Autonomous Notion Agent
+# Notion Agent (SaaS)
 
-An AI agent that autonomously manages and schedules tasks within a Notion database using RAG (Retrieval Augmented Generation) for intelligent decision-making.
+This repository contains the codebase for our multi-tenant Notion Agent service. It is provided to evaluate our architecture and for contribution requests. It is not a template for cloning or redistributing a competing service.
 
-## Project Overview
+## What this repo is
+- Backend (FastAPI) implementing multi-tenant APIs, per-user vector databases, monitoring, and quotas.
+- Frontend (Next.js + shadcn + Tailwind) providing dashboard, onboarding, settings, and chat assistant.
+- Shared TypeScript package for types/constants.
 
-This agent acts as a "Digital Personal Assistant" for Notion by:
-- Monitoring your Notion task database and contextual cues
-- Retrieving relevant task details and preferences using RAG
-- Using LLM (Gemini 1.5 Flash) to intelligently plan and schedule tasks
-- Executing actions to update Notion properties or send notifications
-- Operating autonomously on a scheduled basis
+## What this repo is not
+- A ready-to-deploy open-source product for resale or hosted distribution.
+- A permissive template to copy our service. Please do not reuse branding or content.
 
-## 12-Factor Agent Architecture
+## Local development (summary)
+1. Requirements: Python 3.12+, Node 18+, PostgreSQL/Supabase credentials, Notion OAuth app.
+2. Backend: `pip install -r requirements.txt` then run `uvicorn src.server_multi_tenant:app --reload`.
+3. Frontend: `cd frontend && npm i && npm run dev`.
+4. Configure `.env` / `.env.local` for secrets (see `env.example`).
 
-This project follows the 12-Factor Agent framework to ensure reliability, maintainability, and production readiness:
+Production deployment and environment configuration are proprietary to our SaaS and not included here. Please contact us for collaboration.
 
-1. Natural Language to Tool Calls
-2. Own Your Prompts
-3. Own Your Context Window
-4. Tools are Just Structured Outputs
-5. Unify Execution State and Business State
-6. Launch/Pause/Resume with Simple APIs
-7. Contact Humans with Tool Calls
-8. Own Your Control Flow
-9. Compact Errors into Context Window
-10. Small, Focused Agents
-11. Trigger from Anywhere
-12. Make Your Agent a Stateless Reducer
-
-## Setup
-
-1. Clone this repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Set up environment variables in `.env` (see `.env.example`)
-4. Configure your Notion database schema
-5. Run the initialization script: `python src/setup.py`
-
-## Usage
-
-Once set up, the agent will run automatically according to the configured schedule.
-
-For manual invocation:
-```
-python src/agent.py
-``` 
+## License
+All rights reserved. No part of this repository may be reproduced, distributed, or transmitted in any form or by any means without prior written permission, except for brief code excerpts for review purposes.

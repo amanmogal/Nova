@@ -2,12 +2,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Settings, BarChart3, Calendar, CheckCircle, Clock } from "lucide-react";
+import { FileText, BarChart3, Calendar, CheckCircle, Clock } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getUsageSummary } from "@/lib/api";
+import { getUsageSummary, createTask, runAgent } from "@/lib/api";
+import toast from "react-hot-toast";
+import { VercelV0Chat } from "@/components/ui/v0-ai-chat";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -43,7 +45,7 @@ export default function DashboardPage() {
   const completionRate = 87; // placeholder
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-black text-white py-8">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Welcome Section */}
@@ -51,9 +53,7 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Welcome back!
           </h2>
-          <p className="text-gray-600">
-            Your Notion workspace: {(session as any).notionWorkspaceName || "Connected Workspace"}
-          </p>
+          <p className="text-gray-600">Your Notion workspace: {String((session as unknown as { notionWorkspaceName?: string })?.notionWorkspaceName || "Connected Workspace")}</p>
         </div>
 
         {/* Stats Grid */}
@@ -103,18 +103,46 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions & Assistant */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const title = window.prompt("Task title?");
+                    if (!title) return;
+                    await createTask({ title });
+                    toast.success("Task created successfully");
+                  } catch (e) {
+                    const message = e instanceof Error ? e.message : String(e);
+                    toast.error(`Failed to create task: ${message}`);
+                  }
+                }}
+              >
                 <FileText className="h-4 w-4 mr-2" />
                 Create New Task
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const routine = window.prompt("What routine should I schedule?");
+                    if (!routine) return;
+                    await runAgent("schedule_routine", routine);
+                    toast.success("Routine scheduling started");
+                  } catch (e) {
+                    const message = e instanceof Error ? e.message : String(e);
+                    toast.error(`Failed to schedule routine: ${message}`);
+                  }
+                }}
+              >
                 <Clock className="h-4 w-4 mr-2" />
                 Schedule Routine
               </Button>
@@ -142,12 +170,22 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">Task completed</p>
-                    <p className="text-xs text-gray-500">"Review project proposal" marked as done</p>
+                    <p className="text-xs text-gray-500">&quot;Review project proposal&quot; marked as done</p>
                   </div>
                   <span className="text-xs text-gray-400">2h ago</span>
                 </div>
                 
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Assistant</CardTitle>
+              <CardDescription>Chat with your agent</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VercelV0Chat />
             </CardContent>
           </Card>
         </div>
