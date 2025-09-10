@@ -78,11 +78,12 @@ LANGGRPAH_DOCS.md
 node_modules
 TODAY_DEVELOPMENT_SUMMARY.md
  
-# Ignore all markdown files except README.md and anything under docs/
-*.md
-!README.md
-!docs/**
-!MONOREPO_README.md
+# Docs and markdown policy: track only whitelisted docs; exclude completion docs
+# Keep key top-level docs and code directories
+!/README.md
+!/MONOREPO_README.md
+!/DOCUMENTATION_INDEX.md
+!/SECURITY.md
 !/frontend/**
 !/deployment/**
 !/shared/**
@@ -94,6 +95,31 @@ TODAY_DEVELOPMENT_SUMMARY.md
 !/requirements.txt
 !/agent-config.yaml
 !/langgraph.json
+
+# Exclude all markdown by default
+*.md
+
+# Allow docs directory but exclude completion/sensitive docs within
+!docs/**
+docs/*COMPLETION*.md
+docs/*FINAL_SUMMARY*.md
+docs/PROJECT_STATUS.md
+docs/PHASE_3_FINAL_SUMMARY.md
+docs/PROMETHEUS_GRAFANA_SUMMARY.md
+docs/ARCHITECTURE_SCALING_PLAN.md
+docs/PHASE_4_PLAN.md
+docs/PHASE_5_IMPLEMENTATION_PLAN.md
+docs/DEVELOPMENT_STATUS.md
+docs/LANGGRAPH_STUDIO_ANALYSIS.md
+docs/LANGGRAPH_DOCS.md
+docs/GRAFANA_CLOUD_SETUP.md
+docs/PROMETHEUS_GRAFANA_SETUP.md
+docs/DEBUGGING_MEMORY.md
+
+# Also exclude top-level completion or status docs
+WEEK_2_COMPLETION.md
+WEEK_2_SUBSCRIPTION_MODEL_COMPLETION.md
+PROJECT_STATUS.md
 
 .txt/*
 plan.md
