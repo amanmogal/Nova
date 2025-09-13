@@ -47,13 +47,13 @@ async def test_agent_basic():
 
 async def test_agent_tools():
     """Test individual agent tools."""
-    print("\n🔧 Testing Agent Tools")
+    print("\n Testing Agent Tools")
     print("=" * 50)
     
     from src.agent import search_tasks_tool, get_routines_tool
     
     # Test search tool
-    print("🔍 Testing search_tasks_tool...")
+    print(" Testing search_tasks_tool...")
     try:
         state = {
             "current_query": "pending tasks",
@@ -89,7 +89,7 @@ async def main():
     await test_agent_basic()
     
     print("\n" + "=" * 60)
-    print("🏁 Agent Tests Completed")
+    print(" Agent Tests Completed")
 
 if __name__ == "__main__":
     import asyncio

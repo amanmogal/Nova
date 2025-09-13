@@ -91,13 +91,13 @@ def analyze_agent_logs(log_file="agent.log"):
     print("RECOMMENDATIONS")
     print("-" * 20)
     if error_types['recursion_limit'] > 0:
-        print("⚠️  Consider reducing loop limits or improving loop detection")
+        print("  Consider reducing loop limits or improving loop detection")
     if error_types['llm_no_candidates'] > 0:
-        print("⚠️  LLM response issues detected - check message formatting")
+        print("  LLM response issues detected - check message formatting")
     if error_types['async_error'] > 0:
-        print("⚠️  Async/await issues detected - check event loop handling")
+        print("  Async/await issues detected - check event loop handling")
     if error_count == 0:
-        print("✅ No errors detected - agent running smoothly!")
+        print(" No errors detected - agent running smoothly!")
     
     print("=" * 50)
 

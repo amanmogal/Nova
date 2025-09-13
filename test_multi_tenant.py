@@ -39,12 +39,12 @@ class MultiTenantTester:
             "timestamp": datetime.now().isoformat()
         }
         self.test_results.append(result)
-        status = "✅ PASS" if success else "❌ FAIL"
+        status = " PASS" if success else " FAIL"
         print(f"{status} {test_name}: {details}")
     
     def test_user_creation_with_trial(self):
         """Test user creation with 4-day trial period."""
-        print("\n🧪 Testing User Creation with Trial Period...")
+        print("\n Testing User Creation with Trial Period...")
         
         try:
             # Create test user 1
@@ -97,7 +97,7 @@ class MultiTenantTester:
     
     def test_trial_status_checking(self):
         """Test trial status checking functionality."""
-        print("\n🧪 Testing Trial Status Checking...")
+        print("\n Testing Trial Status Checking...")
         
         try:
             if not self.test_users:
@@ -131,7 +131,7 @@ class MultiTenantTester:
     
     def test_subscription_upgrade(self):
         """Test subscription upgrade functionality."""
-        print("\n🧪 Testing Subscription Upgrade...")
+        print("\n Testing Subscription Upgrade...")
         
         try:
             if not self.test_users:
@@ -164,7 +164,7 @@ class MultiTenantTester:
     
     def test_user_config_isolation(self):
         """Test user configuration isolation."""
-        print("\n🧪 Testing User Configuration Isolation...")
+        print("\n Testing User Configuration Isolation...")
         
         try:
             if len(self.test_users) < 2:
@@ -224,7 +224,7 @@ class MultiTenantTester:
     
     def test_rag_engine_isolation(self):
         """Test RAG engine isolation between users."""
-        print("\n🧪 Testing RAG Engine Isolation...")
+        print("\n Testing RAG Engine Isolation...")
         
         try:
             if len(self.test_users) < 2:
@@ -254,7 +254,7 @@ class MultiTenantTester:
     
     def test_usage_tracking(self):
         """Test usage tracking and quota management."""
-        print("\n🧪 Testing Usage Tracking...")
+        print("\n Testing Usage Tracking...")
         
         try:
             if not self.test_users:
@@ -299,7 +299,7 @@ class MultiTenantTester:
     
     def test_quota_management(self):
         """Test quota checking and management."""
-        print("\n🧪 Testing Quota Management...")
+        print("\n Testing Quota Management...")
         
         try:
             if not self.test_users:
@@ -332,7 +332,7 @@ class MultiTenantTester:
     
     def test_jwt_token_management(self):
         """Test JWT token creation and validation."""
-        print("\n🧪 Testing JWT Token Management...")
+        print("\n Testing JWT Token Management...")
         
         try:
             if not self.test_users:
@@ -364,7 +364,7 @@ class MultiTenantTester:
     
     def test_agent_state_isolation(self):
         """Test agent state isolation between users."""
-        print("\n🧪 Testing Agent State Isolation...")
+        print("\n Testing Agent State Isolation...")
         
         try:
             if len(self.test_users) < 2:
@@ -418,7 +418,7 @@ class MultiTenantTester:
     
     def cleanup_test_data(self):
         """Clean up test data."""
-        print("\n🧹 Cleaning up test data...")
+        print("\n Cleaning up test data...")
         
         try:
             for user in self.test_users:
@@ -436,7 +436,7 @@ class MultiTenantTester:
     
     def run_all_tests(self):
         """Run all tests."""
-        print("🚀 Starting Multi-Tenant Backend Tests (Updated Subscription Model)...")
+        print(" Starting Multi-Tenant Backend Tests (Updated Subscription Model)...")
         print("=" * 70)
         
         tests = [
@@ -466,12 +466,12 @@ class MultiTenantTester:
         
         # Summary
         print("\n" + "=" * 70)
-        print(f"📊 Test Summary: {passed}/{total} tests passed")
+        print(f" Test Summary: {passed}/{total} tests passed")
         
         if passed == total:
-            print("🎉 All tests passed! Multi-tenant backend with new subscription model is working correctly.")
+            print(" All tests passed! Multi-tenant backend with new subscription model is working correctly.")
         else:
-            print("⚠️  Some tests failed. Check the details above.")
+            print("  Some tests failed. Check the details above.")
         
         return passed == total
 
@@ -482,8 +482,8 @@ async def main():
     success = tester.run_all_tests()
     
     if success:
-        print("\n✅ Multi-tenant backend with updated subscription model is ready!")
-        print("\n📋 New Subscription Model:")
+        print("\n Multi-tenant backend with updated subscription model is ready!")
+        print("\n New Subscription Model:")
         print("   • 4-day Free Trial (50 requests, 50k tokens)")
         print("   • Pro Plan ($19/month - 1k requests, 1M tokens)")
         print("   • Plus Plan ($39/month - 2.5k requests, 2.5M tokens)")
@@ -494,7 +494,7 @@ async def main():
         print("3. Test the FastAPI server")
         print("4. Move to Week 3: User Dashboard")
     else:
-        print("\n❌ Some issues need to be resolved before proceeding.")
+        print("\n Some issues need to be resolved before proceeding.")
 
 
 if __name__ == "__main__":

@@ -237,15 +237,15 @@ def main():
     
     # Summary
     print("\n===== Setup Summary =====")
-    print(f"Notion Integration: {'✓ OK' if notion_ok else '✗ Failed'}")
-    print(f"Vector Database: {'✓ OK' if vector_db_ok else '✗ Failed'}")
-    print(f"Supabase Integration: {'✓ OK' if supabase_ok else '✗ Failed'}")
+    print(f"Notion Integration: {' OK' if notion_ok else ' Failed'}")
+    print(f"Vector Database: {' OK' if vector_db_ok else ' Failed'}")
+    print(f"Supabase Integration: {' OK' if supabase_ok else ' Failed'}")
     
     if notion_ok and vector_db_ok and supabase_ok:
-        print("\n✓ Setup completed successfully!")
+        print("\n Setup completed successfully!")
         print("You can now run the agent with: python src/agent.py")
     else:
-        print("\n✗ Setup incomplete. Please fix the issues above and try again.")
+        print("\n Setup incomplete. Please fix the issues above and try again.")
     
 
 if __name__ == "__main__":

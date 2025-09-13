@@ -22,7 +22,7 @@ from src.monitoring.cost_optimizer import get_cost_optimizer, CostOptimizer
 
 async def test_phase4_monitoring():
     """Test Phase 4 monitoring and analytics features."""
-    print("🧪 Testing Phase 4 Monitoring & Analytics")
+    print(" Testing Phase 4 Monitoring & Analytics")
     print("=" * 60)
     
     try:
@@ -35,9 +35,9 @@ async def test_phase4_monitoring():
         # Test tracing capabilities
         with tracer.trace_agent_run("test_goal", "test_input") as run_tree:
             if run_tree:
-                print("   ✅ LangSmith tracing working")
+                print("    LangSmith tracing working")
             else:
-                print("   ⚠️ LangSmith tracing not configured (expected if no API key)")
+                print("    LangSmith tracing not configured (expected if no API key)")
         
         # Test 2: Metrics Collector
         print("\n2. Testing Metrics Collector...")
@@ -68,7 +68,7 @@ async def test_phase4_monitoring():
         print(f"   Total operations: {performance_summary.get('total_operations', 0)}")
         print(f"   Success rate: {performance_summary.get('success_rate_percent', 0)}%")
         print(f"   Average duration: {performance_summary.get('average_duration_ms', 0):.2f}ms")
-        print("   ✅ Metrics collection working")
+        print("    Metrics collection working")
         
         # Test 3: Feedback System
         print("\n3. Testing Feedback System...")
@@ -100,7 +100,7 @@ async def test_phase4_monitoring():
         print(f"   Total feedback: {feedback_summary.get('total_feedback', 0)}")
         print(f"   Average rating: {feedback_summary.get('average_rating', 0)}/5")
         print(f"   Feedback types: {feedback_summary.get('feedback_by_type', {})}")
-        print("   ✅ Feedback system working")
+        print("    Feedback system working")
         
         # Test 4: Cost Optimizer
         print("\n4. Testing Cost Optimizer...")
@@ -126,7 +126,7 @@ async def test_phase4_monitoring():
         print(f"   Total cost: ${cost_summary.get('total_cost', 0):.6f}")
         print(f"   Total operations: {cost_summary.get('total_operations', 0)}")
         print(f"   Cost breakdown: {cost_summary.get('operation_cost_breakdown', {})}")
-        print("   ✅ Cost optimization working")
+        print("    Cost optimization working")
         
         # Test 5: Analytics Dashboard
         print("\n5. Testing Analytics Dashboard...")
@@ -145,7 +145,7 @@ async def test_phase4_monitoring():
         print(f"   Key metrics - Operations: {key_metrics.get('total_operations', 0)}")
         print(f"   Key metrics - Success rate: {key_metrics.get('success_rate', 0)}%")
         print(f"   Key metrics - Cost: ${key_metrics.get('total_cost', 0):.6f}")
-        print("   ✅ Analytics dashboard working")
+        print("    Analytics dashboard working")
         
         # Test 6: Generate Report
         print("\n6. Testing Report Generation...")
@@ -168,7 +168,7 @@ async def test_phase4_monitoring():
         for rec in recommendations[:2]:  # Show first 2 recommendations
             print(f"     - {rec}")
         
-        print("   ✅ Report generation working")
+        print("    Report generation working")
         
         # Test 7: Alerts and Monitoring
         print("\n7. Testing Alerts and Monitoring...")
@@ -185,7 +185,7 @@ async def test_phase4_monitoring():
         for alert in cost_alerts:
             print(f"     - {alert['alert_type']}: {alert['message']}")
         
-        print("   ✅ Alerts and monitoring working")
+        print("    Alerts and monitoring working")
         
         # Test 8: Performance Optimization
         print("\n8. Testing Performance Optimization...")
@@ -207,21 +207,21 @@ async def test_phase4_monitoring():
         for rec in opt_recommendations:
             print(f"     - {rec['category']}: {rec['recommendation']} (priority: {rec['priority']})")
         
-        print("   ✅ Performance optimization working")
+        print("    Performance optimization working")
         
         print("\n" + "=" * 60)
-        print("🎉 Phase 4 Monitoring Test Completed Successfully!")
+        print(" Phase 4 Monitoring Test Completed Successfully!")
         
         # Summary
-        print("\n📊 PHASE 4 SUMMARY:")
-        print(f"   - LangSmith Integration: {'✅ Working' if tracer.enabled else '⚠️ Not configured'}")
-        print(f"   - Metrics Collection: ✅ Working ({performance_summary.get('total_operations', 0)} operations)")
-        print(f"   - Feedback System: ✅ Working ({feedback_summary.get('total_feedback', 0)} feedback entries)")
-        print(f"   - Cost Optimization: ✅ Working (${cost_summary.get('total_cost', 0):.6f} tracked)")
-        print(f"   - Analytics Dashboard: ✅ Working (health: {dashboard.system_health.get('status', 'unknown')})")
-        print(f"   - Report Generation: ✅ Working ({len(key_insights)} insights, {len(recommendations)} recommendations)")
-        print(f"   - Alerts & Monitoring: ✅ Working ({len(alerts)} alerts, {len(cost_alerts)} cost alerts)")
-        print(f"   - Performance Optimization: ✅ Working ({len(opt_recommendations)} recommendations)")
+        print("\n PHASE 4 SUMMARY:")
+        print(f"   - LangSmith Integration: {' Working' if tracer.enabled else ' Not configured'}")
+        print(f"   - Metrics Collection:  Working ({performance_summary.get('total_operations', 0)} operations)")
+        print(f"   - Feedback System:  Working ({feedback_summary.get('total_feedback', 0)} feedback entries)")
+        print(f"   - Cost Optimization:  Working (${cost_summary.get('total_cost', 0):.6f} tracked)")
+        print(f"   - Analytics Dashboard:  Working (health: {dashboard.system_health.get('status', 'unknown')})")
+        print(f"   - Report Generation:  Working ({len(key_insights)} insights, {len(recommendations)} recommendations)")
+        print(f"   - Alerts & Monitoring:  Working ({len(alerts)} alerts, {len(cost_alerts)} cost alerts)")
+        print(f"   - Performance Optimization:  Working ({len(opt_recommendations)} recommendations)")
         
         return {
             "success": True,
@@ -234,14 +234,14 @@ async def test_phase4_monitoring():
         }
         
     except Exception as e:
-        print(f"❌ Error testing Phase 4 monitoring: {str(e)}")
+        print(f" Error testing Phase 4 monitoring: {str(e)}")
         import traceback
         traceback.print_exc()
         return {"success": False, "error": str(e)}
 
 async def test_monitoring_integration():
     """Test integration of monitoring systems with the agent."""
-    print("\n🔧 Testing Monitoring Integration")
+    print("\n Testing Monitoring Integration")
     print("=" * 40)
     
     try:
@@ -251,7 +251,7 @@ async def test_monitoring_integration():
             AnalyticsDashboard, CostOptimizer
         )
         
-        print("   ✅ All monitoring modules imported successfully")
+        print("    All monitoring modules imported successfully")
         
         # Test global instances
         tracer = get_tracer()
@@ -260,19 +260,19 @@ async def test_monitoring_integration():
         dashboard = get_analytics_dashboard()
         optimizer = get_cost_optimizer()
         
-        print("   ✅ All global instances created successfully")
+        print("    All global instances created successfully")
         
         # Test basic functionality
         metrics.record_operation("integration_test", 100.0, 100)
         feedback.collect_satisfaction_feedback(FeedbackRating.GOOD)
         optimizer.track_operation_cost("integration_test", 0.001, 100)
         
-        print("   ✅ Basic monitoring functionality working")
+        print("    Basic monitoring functionality working")
         
         return True
         
     except Exception as e:
-        print(f"❌ Error in monitoring integration test: {str(e)}")
+        print(f" Error in monitoring integration test: {str(e)}")
         return False
 
 if __name__ == "__main__":

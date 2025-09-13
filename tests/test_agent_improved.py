@@ -14,7 +14,7 @@ from src.tools.rag_engine import RAGEngine
 
 async def test_improved_agent():
     """Test the improved agent with JSON output and LangGraph."""
-    print("🧪 Testing Improved Agent Logic")
+    print(" Testing Improved Agent Logic")
     print("=" * 50)
     
     try:
@@ -22,7 +22,7 @@ async def test_improved_agent():
         print("1. Testing LangGraph Graph Structure...")
         print(f"   Graph nodes: {list(graph.nodes.keys())}")
         print(f"   Graph type: {type(graph)}")
-        print("   ✅ LangGraph structure verified")
+        print("    LangGraph structure verified")
         
         # Test 2: Test JSON output parsing
         print("\n2. Testing JSON Output Parsing...")
@@ -45,7 +45,7 @@ async def test_improved_agent():
         print(f"   Parsed reasoning: {parsed['reasoning']}")
         print(f"   Parsed tool: {parsed['action']['tool']}")
         print(f"   Parsed parameters: {parsed['action']['parameters']}")
-        print("   ✅ JSON parsing working correctly")
+        print("    JSON parsing working correctly")
         
         # Test 3: Test agent execution with LangGraph
         print("\n3. Testing Agent Execution with LangGraph...")
@@ -54,7 +54,7 @@ async def test_improved_agent():
         rag_engine = RAGEngine()
         print("   Syncing RAG data...")
         await rag_engine.sync_notion_data()
-        print("   ✅ RAG data synced")
+        print("    RAG data synced")
         
         # Run agent
         print("   Running agent...")
@@ -66,9 +66,9 @@ async def test_improved_agent():
         print(f"   Context routines: {len(result.get('context', {}).get('routines', []))}")
         
         if result.get('error'):
-            print(f"   ⚠️ Agent completed with error: {result['error']}")
+            print(f"    Agent completed with error: {result['error']}")
         else:
-            print("   ✅ Agent execution completed successfully")
+            print("    Agent execution completed successfully")
         
         # Test 4: Verify state persistence
         print("\n4. Testing State Persistence...")
@@ -78,24 +78,24 @@ async def test_improved_agent():
         latest_state = db.get_latest_agent_state()
         if latest_state:
             print(f"   Latest state saved: {latest_state.get('timestamp')}")
-            print("   ✅ State persistence working")
+            print("    State persistence working")
         else:
-            print("   ⚠️ No state found in database")
+            print("    No state found in database")
         
         print("\n" + "=" * 50)
-        print("🎉 Improved Agent Test Completed!")
+        print(" Improved Agent Test Completed!")
         
         return result
         
     except Exception as e:
-        print(f"❌ Error testing improved agent: {str(e)}")
+        print(f" Error testing improved agent: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
 
 async def test_json_output_format():
     """Test the JSON output format specifically."""
-    print("\n🔍 Testing JSON Output Format")
+    print("\n Testing JSON Output Format")
     print("=" * 30)
     
     try:
@@ -104,18 +104,18 @@ async def test_json_output_format():
         
         # Check if JSON format is mentioned
         if "JSON" in SYSTEM_PROMPT and "structured" in SYSTEM_PROMPT:
-            print("   ✅ JSON output format instructions found")
+            print("    JSON output format instructions found")
         else:
-            print("   ❌ JSON output format instructions missing")
+            print("    JSON output format instructions missing")
         
         # Test available tools documentation
         if "Available Tools:" in SYSTEM_PROMPT:
-            print("   ✅ Available tools documented")
+            print("    Available tools documented")
         else:
-            print("   ❌ Available tools not documented")
+            print("    Available tools not documented")
             
     except Exception as e:
-        print(f"❌ Error testing JSON format: {str(e)}")
+        print(f" Error testing JSON format: {str(e)}")
 
 if __name__ == "__main__":
     async def main():

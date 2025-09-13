@@ -14,7 +14,7 @@ from src.tools.notion_connector import NotionConnector
 
 async def test_rag_engine():
     """Test RAG engine functionality."""
-    print("🧪 Testing RAG Engine")
+    print(" Testing RAG Engine")
     print("=" * 50)
     
     # Set environment variable for routines database
@@ -24,7 +24,7 @@ async def test_rag_engine():
         # Initialize RAG engine
         print("1. Initializing RAG Engine...")
         rag_engine = RAGEngine()
-        print("   ✅ RAG Engine initialized successfully")
+        print("    RAG Engine initialized successfully")
         
         # Test Notion connector directly
         print("\n2. Testing Notion Connector...")
@@ -33,14 +33,14 @@ async def test_rag_engine():
         # Test getting tasks
         print("   Testing task retrieval...")
         tasks = await notion.get_tasks()
-        print(f"   ✅ Found {len(tasks)} tasks")
+        print(f"    Found {len(tasks)} tasks")
         if tasks:
             print(f"   Sample task: {tasks[0].title} (Status: {tasks[0].status})")
         
         # Test getting routines
         print("   Testing routine retrieval...")
         routines = await notion.get_routines()
-        print(f"   ✅ Found {len(routines)} routines")
+        print(f"    Found {len(routines)} routines")
         if routines:
             print(f"   Sample routine: {routines[0].task} (Category: {routines[0].category})")
         
@@ -48,11 +48,11 @@ async def test_rag_engine():
         print("\n3. Testing RAG Sync...")
         print("   Syncing tasks...")
         await rag_engine._sync_tasks()
-        print("   ✅ Tasks synced successfully")
+        print("    Tasks synced successfully")
         
         print("   Syncing routines...")
         await rag_engine._sync_routines()
-        print("   ✅ Routines synced successfully")
+        print("    Routines synced successfully")
         
         # Test search functionality
         print("\n4. Testing Search Functionality...")
@@ -60,29 +60,29 @@ async def test_rag_engine():
         # Test task search
         print("   Testing task search...")
         task_results = rag_engine.search_tasks("implementation", n_results=3)
-        print(f"   ✅ Found {len(task_results)} task results")
+        print(f"    Found {len(task_results)} task results")
         for i, result in enumerate(task_results[:2], 1):
             print(f"     {i}. {result.get('content', 'No content')[:100]}...")
         
         # Test routine search
         print("   Testing routine search...")
         routine_results = rag_engine.search_routines("meeting", n_results=3)
-        print(f"   ✅ Found {len(routine_results)} routine results")
+        print(f"    Found {len(routine_results)} routine results")
         for i, result in enumerate(routine_results[:2], 1):
             print(f"     {i}. {result.get('content', 'No content')[:100]}...")
         
         # Test context building
         print("\n5. Testing Context Building...")
         context = rag_engine.build_context("daily planning tasks")
-        print(f"   ✅ Context built successfully")
+        print(f"    Context built successfully")
         print(f"   Tasks in context: {len(context.get('tasks', []))}")
         print(f"   Routines in context: {len(context.get('routines', []))}")
         
         print("\n" + "=" * 50)
-        print("🎉 RAG Engine Test Completed Successfully!")
+        print(" RAG Engine Test Completed Successfully!")
         
     except Exception as e:
-        print(f"❌ Error testing RAG engine: {str(e)}")
+        print(f" Error testing RAG engine: {str(e)}")
         import traceback
         traceback.print_exc()
 

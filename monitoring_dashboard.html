@@ -218,13 +218,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 Nova Notion Agent</h1>
+            <h1> Nova Notion Agent</h1>
             <p>Monitoring Dashboard</p>
         </div>
 
         <div style="text-align: center; margin-bottom: 20px;">
-            <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh Dashboard</button>
-            <button class="manual-sync-btn" onclick="triggerManualSync()">⚡ Manual Sync</button>
+            <button class="refresh-btn" onclick="refreshDashboard()"> Refresh Dashboard</button>
+            <button class="manual-sync-btn" onclick="triggerManualSync()"> Manual Sync</button>
         </div>
 
         <div id="message-container"></div>
@@ -273,7 +273,7 @@
             </div>
 
             <div class="card">
-                <h3>📊 Performance Metrics</h3>
+                <h3> Performance Metrics</h3>
                 <div class="metric">
                     <span class="metric-label">Tasks Processed</span>
                     <span class="metric-value" id="tasks-processed">Loading...</span>
@@ -293,7 +293,7 @@
             </div>
 
             <div class="card">
-                <h3>📈 Statistics</h3>
+                <h3> Statistics</h3>
                 <div class="metric">
                     <span class="metric-label">Total Syncs</span>
                     <span class="metric-value" id="total-syncs">Loading...</span>
@@ -314,7 +314,7 @@
         </div>
 
         <div class="sync-history">
-            <h3>🕒 Recent Sync History</h3>
+            <h3> Recent Sync History</h3>
             <div id="sync-history-list">
                 <p style="text-align: center; color: #666;">Loading sync history...</p>
             </div>
@@ -432,7 +432,7 @@
             try {
                 const button = document.querySelector('.manual-sync-btn');
                 button.classList.add('loading');
-                button.textContent = '🔄 Syncing...';
+                button.textContent = ' Syncing...';
 
                 const response = await fetch(`${API_BASE}/sync/manual`, {
                     method: 'POST'
@@ -453,7 +453,7 @@
             } finally {
                 const button = document.querySelector('.manual-sync-btn');
                 button.classList.remove('loading');
-                button.textContent = '⚡ Manual Sync';
+                button.textContent = ' Manual Sync';
             }
         }
 

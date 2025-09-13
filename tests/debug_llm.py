@@ -126,11 +126,11 @@ Previous actions completed successfully.
                 if json_start != -1 and json_end > json_start:
                     json_str = response_text[json_start:json_end]
                     parsed = json.loads(json_str)
-                    print(f"✅ JSON parsed successfully: {parsed.get('action', {}).get('tool', 'unknown')}")
+                    print(f" JSON parsed successfully: {parsed.get('action', {}).get('tool', 'unknown')}")
                 else:
-                    print("❌ No JSON found in response")
+                    print(" No JSON found in response")
             except json.JSONDecodeError as e:
-                print(f"❌ JSON parsing failed: {e}")
+                print(f" JSON parsing failed: {e}")
         else:
             print(f"No candidates. Prompt feedback: {response.prompt_feedback}")
     except Exception as e:

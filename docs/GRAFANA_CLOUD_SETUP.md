@@ -1,10 +1,10 @@
 # Grafana Cloud Setup for Notion Agent
 
-## 🎯 Overview
+##  Overview
 
 This guide will help you set up **Grafana Cloud** for monitoring your Notion Agent with beautiful dashboards and real-time metrics.
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Create Grafana Cloud Account
 
@@ -88,7 +88,7 @@ curl http://localhost:8000/metrics
    - `notion_agent_error_count`
    - `notion_agent_operation_duration_ms`
 
-## 📊 Available Metrics
+##  Available Metrics
 
 Your agent exports these Prometheus metrics:
 
@@ -103,7 +103,7 @@ Your agent exports these Prometheus metrics:
 - `notion_agent_total_cost_usd` - Total cost across all operations
 - `notion_agent_last_export_time` - Last metrics export timestamp
 
-## 🎨 Create Beautiful Dashboards
+##  Create Beautiful Dashboards
 
 ### 1. Import Pre-built Dashboard
 
@@ -158,7 +158,7 @@ rate(notion_agent_error_count[5m])
 topk(5, rate(notion_agent_error_count[5m]))
 ```
 
-## 🔧 Configuration
+##  Configuration
 
 ### Environment Variables
 
@@ -182,7 +182,7 @@ Your agent automatically exports metrics when:
 - Agent runs complete
 - Errors occur
 
-## 🚨 Alerts (Optional)
+##  Alerts (Optional)
 
 Set up alerts in Grafana Cloud:
 
@@ -201,7 +201,7 @@ rate(notion_agent_cost_usd[1h]) > 1.0
 avg(notion_agent_operation_duration_ms) > 5000
 ```
 
-## 🧪 Testing
+##  Testing
 
 ### 1. Test Your Metrics Endpoint
 ```bash
@@ -227,7 +227,7 @@ curl http://localhost:8000/metrics
 3. Query: `notion_agent_operation_count`
 4. You should see your metrics appearing
 
-## 💡 Tips
+##  Tips
 
 1. **Start Simple**: Begin with basic metrics, add complexity later
 2. **Use Templates**: Grafana has many dashboard templates
@@ -235,7 +235,7 @@ curl http://localhost:8000/metrics
 4. **Monitor Costs**: Keep an eye on your Grafana Cloud usage
 5. **Backup Configs**: Save your agent and Grafana configurations
 
-## 🆘 Troubleshooting
+##  Troubleshooting
 
 ### No Metrics Appearing
 - Check your `/metrics` endpoint returns data
@@ -252,13 +252,13 @@ curl http://localhost:8000/metrics
 - Check the `export_prometheus()` method
 - Verify metric names match your queries
 
-## 🎉 Success!
+##  Success!
 
 Once set up, you'll have:
-- ✅ **Real-time monitoring** of your Notion Agent
-- ✅ **Beautiful dashboards** with Grafana
-- ✅ **Cost tracking** and optimization
-- ✅ **Error monitoring** and alerting
-- ✅ **Performance insights** and trends
+-  **Real-time monitoring** of your Notion Agent
+-  **Beautiful dashboards** with Grafana
+-  **Cost tracking** and optimization
+-  **Error monitoring** and alerting
+-  **Performance insights** and trends
 
-Your monitoring is now production-ready! 🚀 
+Your monitoring is now production-ready!  

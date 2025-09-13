@@ -73,7 +73,7 @@ def test_reasoning_node():
     print("\n=== Test 1: First Call to reasoning_node ===")
     try:
         result = reasoning_node(state)
-        print(f"✅ reasoning_node executed successfully")
+        print(f" reasoning_node executed successfully")
         print(f"Next action: {result.get('next_action', 'None')}")
         print(f"Current query: {result.get('current_query', 'None')}")
         print(f"Error: {result.get('error', 'None')}")
@@ -82,7 +82,7 @@ def test_reasoning_node():
         first_result = result
         
     except Exception as e:
-        print(f"❌ Error in first call: {e}")
+        print(f" Error in first call: {e}")
         import traceback
         traceback.print_exc()
         return
@@ -97,13 +97,13 @@ def test_reasoning_node():
         state["search_results"]["tasks"] = state["search_results"]["tasks"][:1]  # Reduce tasks
         
         result = reasoning_node(state)
-        print(f"✅ Second reasoning_node call executed successfully")
+        print(f" Second reasoning_node call executed successfully")
         print(f"Next action: {result.get('next_action', 'None')}")
         print(f"Current query: {result.get('current_query', 'None')}")
         print(f"Error: {result.get('error', 'None')}")
         
     except Exception as e:
-        print(f"❌ Error in second call: {e}")
+        print(f" Error in second call: {e}")
         import traceback
         traceback.print_exc()
     
@@ -114,12 +114,12 @@ def test_reasoning_node():
         error_state["error"] = "Test error"
         
         result = reasoning_node(error_state)
-        print(f"✅ Error state handled successfully")
+        print(f" Error state handled successfully")
         print(f"Next action: {result.get('next_action', 'None')}")
         print(f"Error: {result.get('error', 'None')}")
         
     except Exception as e:
-        print(f"❌ Error in error state test: {e}")
+        print(f" Error in error state test: {e}")
         import traceback
         traceback.print_exc()
     
@@ -131,12 +131,12 @@ def test_reasoning_node():
         empty_state["routine_results"] = {"success": True, "routines": []}
         
         result = reasoning_node(empty_state)
-        print(f"✅ Empty results handled successfully")
+        print(f" Empty results handled successfully")
         print(f"Next action: {result.get('next_action', 'None')}")
         print(f"Current query: {result.get('current_query', 'None')}")
         
     except Exception as e:
-        print(f"❌ Error in empty results test: {e}")
+        print(f" Error in empty results test: {e}")
         import traceback
         traceback.print_exc()
 

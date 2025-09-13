@@ -189,19 +189,19 @@ def validate_state(state: AgentState) -> bool:
 ## Error Prevention Checklist
 
 ### Before Running Graph:
-1. ✅ Verify all imports are correct
-2. ✅ Check state schema matches TypedDict
-3. ✅ Ensure all nodes return proper state updates
-4. ✅ Validate conditional edge functions return correct literals
-5. ✅ Test node functions individually
-6. ✅ Verify tool mappings are complete
+1.  Verify all imports are correct
+2.  Check state schema matches TypedDict
+3.  Ensure all nodes return proper state updates
+4.  Validate conditional edge functions return correct literals
+5.  Test node functions individually
+6.  Verify tool mappings are complete
 
 ### During Development:
-1. ✅ Use logging for debugging
-2. ✅ Handle exceptions in each node
-3. ✅ Validate state at each step
-4. ✅ Test with minimal state first
-5. ✅ Check checkpoint configuration
+1.  Use logging for debugging
+2.  Handle exceptions in each node
+3.  Validate state at each step
+4.  Test with minimal state first
+5.  Check checkpoint configuration
 
 ### Common Issues & Solutions:
 
@@ -222,16 +222,16 @@ def validate_state(state: AgentState) -> bool:
        # ... other fields
    
    # Return only changed fields
-   return {"context": new_context}  # ✅
-   # return {"invalid_field": value}  # ❌
+   return {"context": new_context}  # 
+   # return {"invalid_field": value}  # 
    ```
 
 3. **Conditional Edge Issues**
    ```python
    # Must return literal values
    def should_continue(state: AgentState) -> Literal["continue", "end"]:
-       return "continue"  # ✅
-       # return "invalid"  # ❌
+       return "continue"  # 
+       # return "invalid"  # 
    ```
 
 4. **Checkpointing Issues**
@@ -239,8 +239,8 @@ def validate_state(state: AgentState) -> bool:
    # Always provide thread_id
    config = {
        "configurable": {
-           "thread_id": "unique_thread_id",  # ✅
-           # Missing thread_id  # ❌
+           "thread_id": "unique_thread_id",  # 
+           # Missing thread_id  # 
        }
    }
    ```

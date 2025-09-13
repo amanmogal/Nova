@@ -1,6 +1,6 @@
 # Debugging Memory - Phase 3 Development
 
-## 🎯 **KEY LEARNINGS & SOLUTIONS**
+##  **KEY LEARNINGS & SOLUTIONS**
 
 ### **1. LLM Response Inconsistency Pattern**
 **Issue**: LLM works perfectly on first call but fails on subsequent calls with "LLM response has no candidates"
@@ -101,7 +101,7 @@ def action_node(state: AgentState) -> AgentState:
         return asyncio.run(execute_action(state))
 ```
 
-## 🔍 **DEBUGGING TECHNIQUES USED**
+##  **DEBUGGING TECHNIQUES USED**
 
 ### **1. Isolated Testing**
 - Created separate debug scripts for each component
@@ -123,21 +123,21 @@ def action_node(state: AgentState) -> AgentState:
 - Tracked state changes between iterations
 - Identified when and why loops occurred
 
-## 📊 **PERFORMANCE METRICS**
+##  **PERFORMANCE METRICS**
 
 ### **Before Fixes**:
-- ❌ LLM failed on 2nd+ calls
-- ❌ Infinite loops after 3-4 iterations
-- ❌ Recursion limit errors
-- ❌ Poor error recovery
+-  LLM failed on 2nd+ calls
+-  Infinite loops after 3-4 iterations
+-  Recursion limit errors
+-  Poor error recovery
 
 ### **After Fixes**:
-- ✅ LLM works consistently across all calls
-- ✅ Loop detection prevents infinite loops
-- ✅ Robust error handling and recovery
-- ✅ Intelligent fallback mechanisms
+-  LLM works consistently across all calls
+-  Loop detection prevents infinite loops
+-  Robust error handling and recovery
+-  Intelligent fallback mechanisms
 
-## 🚨 **COMMON PITFALLS TO AVOID**
+##  **COMMON PITFALLS TO AVOID**
 
 ### **1. Message History Management**
 ```python
@@ -185,7 +185,7 @@ def sync_function():
     return asyncio.run(async_function())
 ```
 
-## 🔧 **BEST PRACTICES ESTABLISHED**
+##  **BEST PRACTICES ESTABLISHED**
 
 ### **1. State Management**
 - Always initialize state fields before use
@@ -207,7 +207,7 @@ def sync_function():
 - Create comprehensive debug scripts
 - Test edge cases and error scenarios
 
-## 📈 **MONITORING & ALERTS**
+##  **MONITORING & ALERTS**
 
 ### **Key Metrics to Monitor**:
 1. **Loop Count**: Should never exceed 5
@@ -221,7 +221,7 @@ def sync_function():
 - LLM response failures > 0
 - Recursion limit errors
 
-## 🎯 **FUTURE IMPROVEMENTS**
+##  **FUTURE IMPROVEMENTS**
 
 ### **1. Message History Management**
 - Implement proper conversation management

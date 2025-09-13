@@ -105,12 +105,12 @@ Previous actions completed successfully.
         print(f"Response candidates: {len(response.candidates)}")
         if response.candidates:
             response_text = response.candidates[0].content.parts[0].text
-            print(f"✅ First call successful: {response_text[:100]}...")
+            print(f" First call successful: {response_text[:100]}...")
             
             # Store the response for next test
             first_response = response_text
         else:
-            print(f"❌ First call failed. Prompt feedback: {response.prompt_feedback}")
+            print(f" First call failed. Prompt feedback: {response.prompt_feedback}")
             return
     except Exception as e:
         print(f"Error in Test 1: {e}")
@@ -160,9 +160,9 @@ Previous actions completed successfully.
         print(f"Response candidates: {len(response.candidates)}")
         if response.candidates:
             response_text = response.candidates[0].content.parts[0].text
-            print(f"✅ Second call successful: {response_text[:100]}...")
+            print(f" Second call successful: {response_text[:100]}...")
         else:
-            print(f"❌ Second call failed. Prompt feedback: {response.prompt_feedback}")
+            print(f" Second call failed. Prompt feedback: {response.prompt_feedback}")
     except Exception as e:
         print(f"Error in Test 2: {e}")
     
@@ -188,9 +188,9 @@ Previous actions completed successfully.
         response = model.generate_content(test_messages)
         print(f"Simple conversation - candidates: {len(response.candidates)}")
         if response.candidates:
-            print(f"✅ Simple conversation works: {response.candidates[0].content.parts[0].text}")
+            print(f" Simple conversation works: {response.candidates[0].content.parts[0].text}")
         else:
-            print(f"❌ Simple conversation failed. Prompt feedback: {response.prompt_feedback}")
+            print(f" Simple conversation failed. Prompt feedback: {response.prompt_feedback}")
     except Exception as e:
         print(f"Error in Test 3: {e}")
     
@@ -225,9 +225,9 @@ Respond with JSON: {{"reasoning": "test", "action": {{"tool": "search_tasks", "p
         response = model.generate_content(problematic_messages)
         print(f"Problematic content - candidates: {len(response.candidates)}")
         if response.candidates:
-            print(f"✅ Problematic content works: {response.candidates[0].content.parts[0].text[:100]}...")
+            print(f" Problematic content works: {response.candidates[0].content.parts[0].text[:100]}...")
         else:
-            print(f"❌ Problematic content failed. Prompt feedback: {response.prompt_feedback}")
+            print(f" Problematic content failed. Prompt feedback: {response.prompt_feedback}")
     except Exception as e:
         print(f"Error in Test 4: {e}")
 

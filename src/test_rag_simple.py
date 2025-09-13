@@ -73,11 +73,11 @@ def test_chunking_logic():
         # Each chunk upper bound size
         assert all(len(chunk.split()) <= 300 for chunk in chunks), "Chunk size exceeds 300 words"
         
-        print("✅ Chunking logic test PASSED")
+        print(" Chunking logic test PASSED")
         return True
         
     except Exception as e:
-        print(f"❌ Chunking logic test FAILED: {e}")
+        print(f" Chunking logic test FAILED: {e}")
         return False
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -128,11 +128,11 @@ def test_incremental_sync():
         
         assert len(res3["ids"]) == chunk_count_round1, "Should have same number of chunks"
         
-        print("✅ Incremental sync test PASSED")
+        print(" Incremental sync test PASSED")
         return True
         
     except Exception as e:
-        print(f"❌ Incremental sync test FAILED: {e}")
+        print(f" Incremental sync test FAILED: {e}")
         return False
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -174,11 +174,11 @@ def test_search_functionality():
         # Should find task1
         assert len(results) > 0, "Should find at least one result"
         
-        print("✅ Search functionality test PASSED")
+        print(" Search functionality test PASSED")
         return True
         
     except Exception as e:
-        print(f"❌ Search functionality test FAILED: {e}")
+        print(f" Search functionality test FAILED: {e}")
         return False
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -186,7 +186,7 @@ def test_search_functionality():
 
 def main():
     """Run all RAG pipeline tests."""
-    print("🧪 RAG Pipeline Test Suite")
+    print(" RAG Pipeline Test Suite")
     print("=" * 50)
     
     tests = [
@@ -201,18 +201,18 @@ def main():
             result = test()
             results.append(result)
         except Exception as e:
-            print(f"❌ Test {test.__name__} FAILED with exception: {e}")
+            print(f" Test {test.__name__} FAILED with exception: {e}")
             results.append(False)
     
     print("\n" + "=" * 50)
-    print("📊 Test Results Summary:")
+    print(" Test Results Summary:")
     print(f"Passed: {sum(results)}/{len(results)}")
     print(f"Failed: {len(results) - sum(results)}/{len(results)}")
     
     if all(results):
-        print("🎉 All RAG pipeline tests PASSED!")
+        print(" All RAG pipeline tests PASSED!")
     else:
-        print("⚠️  Some tests failed. Check the output above.")
+        print("  Some tests failed. Check the output above.")
 
 
 if __name__ == "__main__":
