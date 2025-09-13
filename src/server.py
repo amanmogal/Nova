@@ -60,7 +60,7 @@ class SyncMonitor:
     def record_sync_start(self):
         """Record the start of a sync operation."""
         self.metrics.last_sync_time = datetime.utcnow()
-        logger.info("🔄 Starting RAG sync operation")
+        logger.info(" Starting RAG sync operation")
     
     def record_sync_success(self, duration: float, tasks_processed: int, chunks_created: int):
         """Record a successful sync operation."""
@@ -83,7 +83,7 @@ class SyncMonitor:
         }
         self._add_to_history(sync_record)
         
-        logger.info(f"✅ RAG sync completed successfully in {duration:.2f}s - {tasks_processed} tasks, {chunks_created} chunks")
+        logger.info(f" RAG sync completed successfully in {duration:.2f}s - {tasks_processed} tasks, {chunks_created} chunks")
     
     def record_sync_failure(self, error: Exception, duration: float = 0):
         """Record a failed sync operation."""
@@ -104,7 +104,7 @@ class SyncMonitor:
         }
         self._add_to_history(sync_record)
         
-        logger.error(f"❌ RAG sync failed after {duration:.2f}s: {error}")
+        logger.error(f" RAG sync failed after {duration:.2f}s: {error}")
         logger.error(f"Consecutive failures: {self.metrics.consecutive_failures}")
     
     def _add_to_history(self, record: Dict[str, Any]):
@@ -186,8 +186,8 @@ async def _on_startup() -> None:
     """Start the scheduler and log startup information."""
     try:
         scheduler.start()
-        logger.info(f"🚀 Scheduler started: syncing every {SYNC_INTERVAL_MIN} minute(s)")
-        logger.info(f"📊 Sync monitoring initialized")
+        logger.info(f" Scheduler started: syncing every {SYNC_INTERVAL_MIN} minute(s)")
+        logger.info(f" Sync monitoring initialized")
     except Exception as e:
         logger.error(f"Failed to start scheduler: {e}")
         raise
@@ -197,7 +197,7 @@ async def _on_shutdown() -> None:
     """Shutdown the scheduler gracefully."""
     try:
         scheduler.shutdown()
-        logger.info("🛑 Scheduler shutdown")
+        logger.info(" Scheduler shutdown")
     except Exception as e:
         logger.error(f"Error during shutdown: {e}")
 
@@ -254,7 +254,7 @@ async def get_sync_history(limit: int = 10) -> Dict[str, Any]:
 async def trigger_manual_sync() -> Dict[str, Any]:
     """Manually trigger a sync operation."""
     try:
-        logger.info("🔄 Manual sync triggered via API")
+        logger.info(" Manual sync triggered via API")
         _scheduled_rag_sync()
         
         # Get the latest health status
@@ -307,25 +307,25 @@ async def get_sync_metrics() -> Dict[str, Any]:
 async def run_goal(goal: str) -> dict[str, str]:
     """Kick off an agent run for a given goal (e.g., daily_planning)."""
     try:
-        logger.info(f"🎯 Agent run triggered for goal: {goal}")
+        logger.info(f" Agent run triggered for goal: {goal}")
         result = run_agent(goal)
-        logger.info(f"✅ Agent run completed for goal: {goal}")
+        logger.info(f" Agent run completed for goal: {goal}")
         return {"status": "completed", "result": str(result)}
     except Exception as exc:
-        logger.error(f"❌ Agent run failed for goal {goal}: {exc}")
+        logger.error(f" Agent run failed for goal {goal}: {exc}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 @app.post("/tasks")
 async def create_task(task: TaskIn) -> dict[str, str]:
     """Create a new Notion task through the agent's connector."""
     try:
-        logger.info(f"📝 Creating new task: {task.title}")
+        logger.info(f" Creating new task: {task.title}")
         notion = NotionConnector()
         task_id = notion.create_task(task.dict())
-        logger.info(f"✅ Task created successfully: {task_id}")
+        logger.info(f" Task created successfully: {task_id}")
         return {"task_id": task_id}
     except Exception as e:
-        logger.error(f"❌ Failed to create task: {e}")
+        logger.error(f" Failed to create task: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create task: {str(e)}")
 
 @app.get("/state/latest")
@@ -340,7 +340,7 @@ async def latest_state() -> dict:
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to retrieve latest state: {e}")
+        logger.error(f" Failed to retrieve latest state: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve state: {str(e)}")
 
 # ---------------------------------------------------------------------------

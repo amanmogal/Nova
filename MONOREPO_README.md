@@ -1,39 +1,39 @@
-# 🏗️ **Notion Agent Monorepo Structure**
+#  **Notion Agent Monorepo Structure**
 
 This document outlines the monorepo structure for the Notion Agent SaaS Platform.
 
-## 📁 **Directory Structure**
+##  **Directory Structure**
 
 ```
 agent_notion/
-├── 📁 src/                    # Backend (FastAPI)
-│   ├── 📁 auth/              # Authentication & user management
-│   ├── 📁 api/               # API endpoints
-│   ├── 📁 models/            # Database models
-│   ├── 📁 services/          # Business logic
-│   ├── 📁 monitoring/        # Monitoring & analytics
-│   └── 📁 tools/             # Agent tools
-├── 📁 frontend/              # Frontend (Next.js)
-│   ├── 📁 src/
-│   │   ├── 📁 app/          # Next.js app router
-│   │   ├── 📁 components/   # React components
-│   │   ├── 📁 lib/          # Utilities
-│   │   └── 📁 types/        # TypeScript types
-│   └── 📁 public/
-├── 📁 shared/                # Shared code
-│   ├── 📁 types/            # Common TypeScript types
-│   ├── 📁 constants/        # Shared constants
-│   └── 📁 utils/            # Shared utilities
-├── 📁 deployment/           # Deployment configs
-│   ├── 📄 docker-compose.yml
-│   ├── 📄 Dockerfile.backend
-│   └── 📄 Dockerfile.frontend
-├── 📁 docs/                 # Documentation
-├── 📁 tests/                # Tests
-└── 📁 data/                 # Data storage
+├──  src/                    # Backend (FastAPI)
+│   ├──  auth/              # Authentication & user management
+│   ├──  api/               # API endpoints
+│   ├──  models/            # Database models
+│   ├──  services/          # Business logic
+│   ├──  monitoring/        # Monitoring & analytics
+│   └──  tools/             # Agent tools
+├──  frontend/              # Frontend (Next.js)
+│   ├──  src/
+│   │   ├──  app/          # Next.js app router
+│   │   ├──  components/   # React components
+│   │   ├──  lib/          # Utilities
+│   │   └──  types/        # TypeScript types
+│   └──  public/
+├──  shared/                # Shared code
+│   ├──  types/            # Common TypeScript types
+│   ├──  constants/        # Shared constants
+│   └──  utils/            # Shared utilities
+├──  deployment/           # Deployment configs
+│   ├──  docker-compose.yml
+│   ├──  Dockerfile.backend
+│   └──  Dockerfile.frontend
+├──  docs/                 # Documentation
+├──  tests/                # Tests
+└──  data/                 # Data storage
 ```
 
-## 🚀 **Quick Start**
+##  **Quick Start**
 
 ### **Prerequisites**
 - Node.js 18+
@@ -83,7 +83,7 @@ agent_notion/
    npm run dev:frontend # Frontend on http://localhost:3000
    ```
 
-## 🛠️ **Development Workflow**
+##  **Development Workflow**
 
 ### **Available Scripts**
 
@@ -130,7 +130,7 @@ docker-compose up --build
 docker-compose down
 ```
 
-## 📦 **Package Structure**
+##  **Package Structure**
 
 ### **Shared Package (`shared/`)**
 - **Types**: Common TypeScript interfaces and types
@@ -149,7 +149,7 @@ docker-compose down
 - **LangGraph** for agent orchestration
 - **ChromaDB** for vector storage
 
-## 🔗 **Package Dependencies**
+##  **Package Dependencies**
 
 ### **Frontend Dependencies**
 ```json
@@ -175,7 +175,7 @@ docker-compose down
 }
 ```
 
-## 🌐 **API Structure**
+##  **API Structure**
 
 ### **Backend API Endpoints**
 - `GET /health` - Health check
@@ -195,7 +195,7 @@ docker-compose down
 - `/routines` - Routine management
 - `/settings` - User settings
 
-## 🔧 **Configuration**
+##  **Configuration**
 
 ### **Environment Variables**
 ```bash
@@ -219,7 +219,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-## 🧪 **Testing**
+##  **Testing**
 
 ### **Backend Testing**
 ```bash
@@ -238,7 +238,7 @@ npm run test
 npm run test:e2e
 ```
 
-## 📊 **Monitoring**
+##  **Monitoring**
 
 ### **Metrics**
 - Prometheus metrics available at `/metrics`
@@ -250,7 +250,7 @@ npm run test:e2e
 - Log levels: DEBUG, INFO, WARNING, ERROR
 - Centralized log aggregation
 
-## 🚀 **Deployment**
+##  **Deployment**
 
 ### **Production Deployment**
 ```bash
@@ -268,20 +268,20 @@ gcloud run deploy notion-agent-frontend --source .
 npm run deploy:staging
 ```
 
-## 📚 **Documentation**
+##  **Documentation**
 
 - [Phase 5 Implementation Plan](./docs/PHASE_5_IMPLEMENTATION_PLAN.md)
 - [Development Status](./docs/DEVELOPMENT_STATUS.md)
 - [API Documentation](./docs/API.md)
 - [Deployment Guide](./docs/DEPLOYMENT.md)
 
-## 🤝 **Contributing**
+##  **Contributing**
 
 1. Create a feature branch
 2. Make your changes
 3. Run tests and linting
 4. Submit a pull request
 
-## 📄 **License**
+##  **License**
 
 MIT License - see [LICENSE](./LICENSE) file for details. 

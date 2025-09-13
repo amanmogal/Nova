@@ -291,20 +291,20 @@ class AgentLogAnalyzer:
         report.append("-" * 20)
         
         if errors['error_types'].get('recursion_limit', 0) > 0:
-            report.append("⚠️  Consider reducing loop limits or improving loop detection")
+            report.append("  Consider reducing loop limits or improving loop detection")
         
         if errors['error_types'].get('llm_no_candidates', 0) > 0:
-            report.append("⚠️  LLM response issues detected - check message formatting")
+            report.append("  LLM response issues detected - check message formatting")
         
         if performance['avg_loop_count'] > 3:
-            report.append("⚠️  High loop counts detected - consider optimizing agent logic")
+            report.append("  High loop counts detected - consider optimizing agent logic")
         
         if tool_usage['success_rate']:
             low_success_tools = [tool for tool, rate in tool_usage['success_rate'].items() if rate < 80]
             if low_success_tools:
-                report.append(f"⚠️  Low success rate for tools: {', '.join(low_success_tools)}")
+                report.append(f"  Low success rate for tools: {', '.join(low_success_tools)}")
         
-        report.append("✅ Agent analysis complete")
+        report.append(" Agent analysis complete")
         
         return "\n".join(report)
     

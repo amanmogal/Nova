@@ -20,7 +20,7 @@ from src.db.multi_tenant_schema import SubscriptionTier
 
 def test_subscription_tiers():
     """Test subscription tier definitions."""
-    print("🧪 Testing Subscription Tiers...")
+    print(" Testing Subscription Tiers...")
     
     # Test tier values
     assert SubscriptionTier.TRIAL.value == "trial"
@@ -28,13 +28,13 @@ def test_subscription_tiers():
     assert SubscriptionTier.PLUS.value == "plus"
     assert SubscriptionTier.TEAMS.value == "teams"
     
-    print("✅ Subscription tiers defined correctly")
+    print(" Subscription tiers defined correctly")
     return True
 
 
 def test_trial_period_calculation():
     """Test trial period calculation logic."""
-    print("🧪 Testing Trial Period Calculation...")
+    print(" Testing Trial Period Calculation...")
     
     # Test 7-day trial period using timezone-aware datetime
     now = datetime.now(timezone.utc)
@@ -45,13 +45,13 @@ def test_trial_period_calculation():
     assert duration.days == 7
     assert duration.seconds >= 0
     
-    print(f"✅ Trial period: {duration.days} days, {duration.seconds // 3600} hours")
+    print(f" Trial period: {duration.days} days, {duration.seconds // 3600} hours")
     return True
 
 
 def test_quota_limits():
     """Test quota limits for each subscription tier."""
-    print("🧪 Testing Quota Limits...")
+    print(" Testing Quota Limits...")
     
     tier_limits = {
         SubscriptionTier.TRIAL: {"requests": 120, "tokens": 50000},
@@ -66,20 +66,20 @@ def test_quota_limits():
         assert "tokens" in limits
         assert limits["requests"] > 0
         assert limits["tokens"] > 0
-        print(f"✅ {tier.value}: {limits['requests']} requests, {limits['tokens']:,} tokens")
+        print(f" {tier.value}: {limits['requests']} requests, {limits['tokens']:,} tokens")
     
     # Test tier progression
     assert tier_limits[SubscriptionTier.PRO]["requests"] > tier_limits[SubscriptionTier.TRIAL]["requests"]
     assert tier_limits[SubscriptionTier.PLUS]["requests"] > tier_limits[SubscriptionTier.PRO]["requests"]
     assert tier_limits[SubscriptionTier.TEAMS]["requests"] > tier_limits[SubscriptionTier.PLUS]["requests"]
     
-    print("✅ Quota limits properly defined and progressive")
+    print(" Quota limits properly defined and progressive")
     return True
 
 
 def test_subscription_pricing():
     """Test subscription pricing model."""
-    print("🧪 Testing Subscription Pricing...")
+    print(" Testing Subscription Pricing...")
     
     pricing = {
         SubscriptionTier.TRIAL: {"price": "Free", "duration": "7 days"},
@@ -89,20 +89,20 @@ def test_subscription_pricing():
     }
     
     for tier, details in pricing.items():
-        print(f"✅ {tier.value}: {details['price']} ({details['duration']})")
+        print(f" {tier.value}: {details['price']} ({details['duration']})")
     
     # Test pricing progression
     assert pricing[SubscriptionTier.PRO]["price"] == "$10/month"
     assert pricing[SubscriptionTier.PLUS]["price"] == "$19/month"
     assert pricing[SubscriptionTier.TEAMS]["price"] == "$49/month + $12/user"
     
-    print("✅ Pricing model properly defined")
+    print(" Pricing model properly defined")
     return True
 
 
 def test_trial_expiration_logic():
     """Test trial expiration logic."""
-    print("🧪 Testing Trial Expiration Logic...")
+    print(" Testing Trial Expiration Logic...")
     
     # Test expired trial using timezone-aware datetime
     now = datetime.now(timezone.utc)
@@ -120,13 +120,13 @@ def test_trial_expiration_logic():
     days_remaining = (one_day_left - now).days
     assert days_remaining == 1
     
-    print("✅ Trial expiration logic working correctly")
+    print(" Trial expiration logic working correctly")
     return True
 
 
 def test_subscription_features():
     """Test subscription feature definitions."""
-    print("🧪 Testing Subscription Features...")
+    print(" Testing Subscription Features...")
     
     features = {
         SubscriptionTier.TRIAL: [
@@ -156,7 +156,7 @@ def test_subscription_features():
     }
     
     for tier, tier_features in features.items():
-        print(f"✅ {tier.value}: {len(tier_features)} features")
+        print(f" {tier.value}: {len(tier_features)} features")
         assert len(tier_features) > 0
     
     # Test feature progression
@@ -164,13 +164,13 @@ def test_subscription_features():
     assert len(features[SubscriptionTier.PLUS]) >= len(features[SubscriptionTier.PRO])
     assert len(features[SubscriptionTier.TEAMS]) >= len(features[SubscriptionTier.PLUS])
     
-    print("✅ Feature sets properly defined and progressive")
+    print(" Feature sets properly defined and progressive")
     return True
 
 
 def test_subscription_upgrade_flow():
     """Test subscription upgrade flow logic."""
-    print("🧪 Testing Subscription Upgrade Flow...")
+    print(" Testing Subscription Upgrade Flow...")
     
     # Test upgrade paths
     upgrade_paths = {
@@ -181,19 +181,19 @@ def test_subscription_upgrade_flow():
     }
     
     for current_tier, available_upgrades in upgrade_paths.items():
-        print(f"✅ {current_tier.value} can upgrade to: {[t.value for t in available_upgrades]}")
+        print(f" {current_tier.value} can upgrade to: {[t.value for t in available_upgrades]}")
         
         # Verify no downgrades are possible
         for upgrade_tier in available_upgrades:
             assert upgrade_tier.value != current_tier.value
     
-    print("✅ Upgrade flow properly defined")
+    print(" Upgrade flow properly defined")
     return True
 
 
 def main():
     """Run all subscription model tests."""
-    print("🚀 Testing New Subscription Model Implementation")
+    print(" Testing New Subscription Model Implementation")
     print("=" * 60)
     
     tests = [
@@ -214,21 +214,21 @@ def main():
             if test():
                 passed += 1
         except Exception as e:
-            print(f"❌ {test.__name__}: Failed with exception - {str(e)}")
+            print(f" {test.__name__}: Failed with exception - {str(e)}")
     
     print("\n" + "=" * 60)
-    print(f"📊 Test Summary: {passed}/{total} tests passed")
+    print(f" Test Summary: {passed}/{total} tests passed")
     
     if passed == total:
-        print("\n🎉 All subscription model tests passed!")
-        print("\n📋 New Subscription Model Summary:")
+        print("\n All subscription model tests passed!")
+        print("\n New Subscription Model Summary:")
         print("   • 7-day Free Trial (120 requests, 50k tokens)")
         print("   • Pro Plan ($10/month - 1k requests, 1M tokens)")
         print("   • Plus Plan ($19/month - 2.5k requests, 2.5M tokens)")
         print("   • Teams Plan ($49/month + $12/user - 5k requests, 5M tokens)")
-        print("\n✅ Subscription model is ready for implementation!")
+        print("\n Subscription model is ready for implementation!")
     else:
-        print("\n❌ Some subscription model tests failed.")
+        print("\n Some subscription model tests failed.")
     
     return passed == total
 

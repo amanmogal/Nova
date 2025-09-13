@@ -126,7 +126,7 @@ def test_agent_reasoning_node():
         
         if response.candidates:
             response_text = response.candidates[0].content.parts[0].text
-            print(f"✅ First reasoning call successful")
+            print(f" First reasoning call successful")
             print(f"Response preview: {response_text[:200]}...")
             
             # Try to parse JSON
@@ -136,19 +136,19 @@ def test_agent_reasoning_node():
                 if json_start != -1 and json_end > json_start:
                     json_str = response_text[json_start:json_end]
                     parsed = json.loads(json_str)
-                    print(f"✅ JSON parsed successfully")
+                    print(f" JSON parsed successfully")
                     print(f"Action tool: {parsed.get('action', {}).get('tool', 'unknown')}")
                     
                     # Store for next test
                     first_response = response_text
                 else:
-                    print("❌ No JSON found in response")
+                    print(" No JSON found in response")
                     return
             except json.JSONDecodeError as e:
-                print(f"❌ JSON parsing failed: {e}")
+                print(f" JSON parsing failed: {e}")
                 return
         else:
-            print(f"❌ First reasoning call failed. Prompt feedback: {response.prompt_feedback}")
+            print(f" First reasoning call failed. Prompt feedback: {response.prompt_feedback}")
             return
             
     except Exception as e:
@@ -202,7 +202,7 @@ def test_agent_reasoning_node():
         
         if response.candidates:
             response_text = response.candidates[0].content.parts[0].text
-            print(f"✅ Second reasoning call successful")
+            print(f" Second reasoning call successful")
             print(f"Response preview: {response_text[:200]}...")
             
             # Try to parse JSON
@@ -212,14 +212,14 @@ def test_agent_reasoning_node():
                 if json_start != -1 and json_end > json_start:
                     json_str = response_text[json_start:json_end]
                     parsed = json.loads(json_str)
-                    print(f"✅ JSON parsed successfully")
+                    print(f" JSON parsed successfully")
                     print(f"Action tool: {parsed.get('action', {}).get('tool', 'unknown')}")
                 else:
-                    print("❌ No JSON found in response")
+                    print(" No JSON found in response")
             except json.JSONDecodeError as e:
-                print(f"❌ JSON parsing failed: {e}")
+                print(f" JSON parsing failed: {e}")
         else:
-            print(f"❌ Second reasoning call failed. Prompt feedback: {response.prompt_feedback}")
+            print(f" Second reasoning call failed. Prompt feedback: {response.prompt_feedback}")
             
     except Exception as e:
         print(f"Error in Test 2: {e}")
@@ -238,9 +238,9 @@ def test_agent_reasoning_node():
             response = model.generate_content(simple_messages)
             print(f"Response candidates: {len(response.candidates)}")
             if response.candidates:
-                print(f"✅ Rapid call {i+1} successful")
+                print(f" Rapid call {i+1} successful")
             else:
-                print(f"❌ Rapid call {i+1} failed. Prompt feedback: {response.prompt_feedback}")
+                print(f" Rapid call {i+1} failed. Prompt feedback: {response.prompt_feedback}")
                 
     except Exception as e:
         print(f"Error in Test 3: {e}")
